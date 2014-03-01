@@ -1,4 +1,5 @@
 #include "xcoro.h"
+#include "list.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,8 +7,6 @@
 #include <string.h>
 
 static xcoro_t *g_xcoro;
-static xcoro_task_t *g_task;
-
 
 int _switch(struct cpu_ctx *new_ctx, struct cpu_ctx *cur_ctx);
 #ifdef __i386__
@@ -73,6 +72,7 @@ static void _exec(xcoro_task_t *task)
   __asm__ ("movq 16(%%rbp), %[lt]" : [task] "=r" (task));
 #endif
     task->entry_point(task->arg);
+	list_del(&task->list);
 
 	// We exited from the task and came back here, need to bail back to the scheduler
 	_switch(&g_xcoro->sched_ctx, &task->ctx);
@@ -97,13 +97,18 @@ void xcoro_init(xcoro_t *xcoro)
 {
 	g_xcoro = xcoro;
 	memset(g_xcoro, 0, sizeof(*g_xcoro));
+	list_head_init(&g_xcoro->ready_list);
 }
 
 void xcoro_run(void)
 {
-	printf("before switch\n");
-	_switch(&g_task->ctx, &g_xcoro->sched_ctx);
-	printf("after switch\n");
+	while (!list_empty(&g_xcoro->ready_list)) {
+		xcoro_task_t *task = list_entry(list_head(&g_xcoro->ready_list), xcoro_task_t, list);
+
+		printf("before switch to %s\n", task->name);
+		_switch(&task->ctx, &g_xcoro->sched_ctx);
+		printf("after switch\n");
+	}
 }
 
 xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size)
@@ -119,5 +124,5 @@ xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry
 	task->stack_size = stack_size;
 
 	_xcoro_task_init(task);
-	g_task = task;
+	list_add_tail(&task->list, &g_xcoro->ready_list);
 }

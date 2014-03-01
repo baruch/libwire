@@ -1,5 +1,7 @@
 // This must be included only from the xcoro.h
 
+#include "list.h"
+
 struct cpu_ctx {
     void *esp;
     void *ebp;
@@ -16,6 +18,7 @@ struct cpu_ctx {
 
 struct xcoro {
 	struct cpu_ctx sched_ctx;
+	struct list_head ready_list;
 };
 
 struct xcoro_task {
@@ -25,4 +28,5 @@ struct xcoro_task {
 	void *arg;
 	void *stack;
 	unsigned stack_size;
+	struct list_head list;
 };
