@@ -65,6 +65,16 @@ __asm__ (
 );
 #endif
 
+static xcoro_task_t *_xcoro_get_next_task(void)
+{
+	if (!list_empty(&g_xcoro->ready_list)) {
+		xcoro_task_t *task = list_entry(list_head(&g_xcoro->ready_list), xcoro_task_t, list);
+		return task;
+	}
+
+	return &g_xcoro->sched_task;
+}
+
 static void _exec(xcoro_task_t *task)
 {
 
@@ -74,8 +84,8 @@ static void _exec(xcoro_task_t *task)
     task->entry_point(task->arg);
 	list_del(&task->list);
 
-	// We exited from the task and came back here, need to bail back to the scheduler
-	_switch(&g_xcoro->sched_ctx, &task->ctx);
+	// We exited from the task and came back here, need to go to the next one
+	_switch(&_xcoro_get_next_task()->ctx, &task->ctx);
 
 	// We should never get back here!
 	abort();
@@ -98,16 +108,13 @@ void xcoro_init(xcoro_t *xcoro)
 	g_xcoro = xcoro;
 	memset(g_xcoro, 0, sizeof(*g_xcoro));
 	list_head_init(&g_xcoro->ready_list);
+	sprintf(g_xcoro->sched_task.name, "sched %p", xcoro);
 }
 
 void xcoro_run(void)
 {
 	while (!list_empty(&g_xcoro->ready_list)) {
-		xcoro_task_t *task = list_entry(list_head(&g_xcoro->ready_list), xcoro_task_t, list);
-
-		printf("before switch to %s\n", task->name);
-		_switch(&task->ctx, &g_xcoro->sched_ctx);
-		printf("after switch\n");
+		_switch(&_xcoro_get_next_task()->ctx, &g_xcoro->sched_task.ctx);
 	}
 }
 

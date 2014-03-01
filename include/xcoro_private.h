@@ -16,11 +16,6 @@ struct cpu_ctx {
     void *r5;
 };
 
-struct xcoro {
-	struct cpu_ctx sched_ctx;
-	struct list_head ready_list;
-};
-
 struct xcoro_task {
 	struct cpu_ctx ctx;
 	char name[32];
@@ -29,4 +24,9 @@ struct xcoro_task {
 	void *stack;
 	unsigned stack_size;
 	struct list_head list;
+};
+
+struct xcoro {
+	xcoro_task_t sched_task;
+	struct list_head ready_list;
 };
