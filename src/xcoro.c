@@ -7,7 +7,6 @@
 
 static xcoro_t *g_xcoro;
 static xcoro_task_t *g_task;
-static struct cpu_ctx saved_ctx;
 
 
 int _switch(struct cpu_ctx *new_ctx, struct cpu_ctx *cur_ctx);
@@ -67,8 +66,7 @@ __asm__ (
 );
 #endif
 
-static void
-_exec(xcoro_task_t *task)
+static void _exec(xcoro_task_t *task)
 {
 
 #if defined(__llvm__) && defined(__x86_64__)
@@ -77,7 +75,7 @@ _exec(xcoro_task_t *task)
     task->entry_point(task->arg);
 
 	// We exited from the task and came back here, need to bail back to the scheduler
-	_switch(&saved_ctx, &task->ctx);
+	_switch(&g_xcoro->sched_ctx, &task->ctx);
 
 	// We should never get back here!
 	abort();
@@ -104,7 +102,7 @@ void xcoro_init(xcoro_t *xcoro)
 void xcoro_run(void)
 {
 	printf("before switch\n");
-	_switch(&g_task->ctx, &saved_ctx);
+	_switch(&g_task->ctx, &g_xcoro->sched_ctx);
 	printf("after switch\n");
 }
 

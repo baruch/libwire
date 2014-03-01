@@ -1,9 +1,5 @@
 // This must be included only from the xcoro.h
 
-struct xcoro {
-	int filler;
-};
-
 struct cpu_ctx {
     void *esp;
     void *ebp;
@@ -16,6 +12,10 @@ struct cpu_ctx {
     void *r3;
     void *r4;
     void *r5;
+};
+
+struct xcoro {
+	struct cpu_ctx sched_ctx;
 };
 
 struct xcoro_task {
