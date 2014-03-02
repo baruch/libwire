@@ -1,5 +1,6 @@
 #include "xcoro.h"
 #include "xcoro_fd.h"
+#include "xcoro_task_pool.h"
 #include "macros.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -15,9 +16,7 @@ xcoro_t xcoro_main;
 xcoro_task_t task_accept;
 char task_accept_stack[4096];
 
-int echo_in_use;
-xcoro_task_t task_echo;
-char task_echo_stack[4096];
+xcoro_task_pool_t echo_pool;
 
 void set_nonblock(int fd)
 {
@@ -97,7 +96,6 @@ void task_echo_run(void *arg)
 	} while (ret >= 0);
 
 	close(fd);
-	echo_in_use = 0;
 	printf("echo is done\n");
 }
 
@@ -112,12 +110,10 @@ void task_accept_run(void *arg)
 		int new_fd = accept(fd, NULL, NULL);
 		if (new_fd >= 0) {
 			printf("New connection: %d\n", new_fd);
-			if (echo_in_use) {
+			xcoro_task_t *task = xcoro_task_pool_alloc(&echo_pool, "echo", task_echo_run, (void*)(long int)new_fd);
+			if (!task) {
 				printf("Echo is busy, sorry\n");
 				close(new_fd);
-			} else {
-				echo_in_use = 1;
-				xcoro_task_init(&task_echo, "echo", task_echo_run, (void*)(long int)new_fd, &task_echo_stack, sizeof(task_echo_stack));
 			}
 		} else {
 			if (errno != EINTR && errno != EAGAIN) {
@@ -132,6 +128,7 @@ int main()
 {
 	xcoro_init(&xcoro_main);
 	xcoro_fd_init();
+	xcoro_task_pool_init(&echo_pool, NULL, 6, 4096);
 	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, &task_accept_stack, sizeof(task_accept_stack));
 	xcoro_run();
 	return 0;
