@@ -60,7 +60,8 @@ static inline int list_empty(struct list_head *head)
 	return head->prev == head;
 }
 
-static inline struct list_head *list_head(struct list_head *head) {
+static inline struct list_head *list_head(struct list_head *head)
+{
 	if (list_empty(head))
 		return NULL;
 	return head->next;
