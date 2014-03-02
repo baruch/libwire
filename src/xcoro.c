@@ -75,9 +75,14 @@ static xcoro_task_t *_xcoro_get_next_task(void)
 	return &g_xcoro->sched_task;
 }
 
+xcoro_task_t *xcoro_get_current_task(void)
+{
+	return g_xcoro->running_task;
+}
+
 static void _xcoro_switch_to(xcoro_task_t *task)
 {
-	xcoro_task_t *from = g_xcoro->running_task;
+	xcoro_task_t *from = xcoro_get_current_task();
 	g_xcoro->running_task = task;
 
 	if (task != from)
@@ -125,6 +130,7 @@ void xcoro_init(xcoro_t *xcoro)
 	memset(g_xcoro, 0, sizeof(*g_xcoro));
 
 	list_head_init(&g_xcoro->ready_list);
+	list_head_init(&g_xcoro->suspend_list);
 	sprintf(g_xcoro->sched_task.name, "sched %p", xcoro);
 	g_xcoro->running_task = &g_xcoro->sched_task;
 }
@@ -154,11 +160,28 @@ xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry
 
 void xcoro_yield(void)
 {
-	xcoro_task_t *this_task = g_xcoro->running_task;
+	xcoro_task_t *this_task = xcoro_get_current_task();
 
 	// Move to the end of the ready list
 	list_move_tail(&this_task->list, &g_xcoro->ready_list);
 
 	// Schedule the next one (could be the same task though!)
 	xcoro_schedule();
+}
+
+void xcoro_suspend(void)
+{
+	xcoro_task_t *this_task = xcoro_get_current_task();
+	list_move_tail(&this_task->list, &g_xcoro->suspend_list);
+	xcoro_schedule();
+}
+
+void xcoro_resume(xcoro_task_t *task)
+{
+	list_move_tail(&task->list, &g_xcoro->ready_list);
+}
+
+int xcoro_is_only_task(void)
+{
+	return list_is_single(&g_xcoro->ready_list);
 }

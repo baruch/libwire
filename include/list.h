@@ -60,6 +60,11 @@ static inline int list_empty(struct list_head *head)
 	return head->prev == head;
 }
 
+static inline int list_is_single(struct list_head *head)
+{
+	return !list_empty(head) && head->next == head->prev;
+}
+
 static inline struct list_head *list_head(struct list_head *head)
 {
 	if (list_empty(head))

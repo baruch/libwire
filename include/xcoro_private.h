@@ -29,5 +29,6 @@ struct xcoro_task {
 struct xcoro {
 	xcoro_task_t sched_task;
 	struct list_head ready_list;
+	struct list_head suspend_list;
 	xcoro_task_t *running_task;
 };
