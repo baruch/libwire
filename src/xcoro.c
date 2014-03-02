@@ -75,6 +75,20 @@ static xcoro_task_t *_xcoro_get_next_task(void)
 	return &g_xcoro->sched_task;
 }
 
+static void _xcoro_switch_to(xcoro_task_t *task)
+{
+	xcoro_task_t *from = g_xcoro->running_task;
+	g_xcoro->running_task = task;
+
+	if (task != from)
+		_switch(&task->ctx, &from->ctx);
+}
+
+static void xcoro_schedule(void)
+{
+	_xcoro_switch_to(_xcoro_get_next_task());
+}
+
 static void _exec(xcoro_task_t *task)
 {
 
@@ -82,10 +96,12 @@ static void _exec(xcoro_task_t *task)
   __asm__ ("movq 16(%%rbp), %[lt]" : [task] "=r" (task));
 #endif
     task->entry_point(task->arg);
+
+	// We exited from the task, we shouldn't come back anymore
 	list_del(&task->list);
 
-	// We exited from the task and came back here, need to go to the next one
-	_switch(&_xcoro_get_next_task()->ctx, &task->ctx);
+	// Now switch to the next task
+	xcoro_schedule();
 
 	// We should never get back here!
 	abort();
@@ -107,14 +123,16 @@ void xcoro_init(xcoro_t *xcoro)
 {
 	g_xcoro = xcoro;
 	memset(g_xcoro, 0, sizeof(*g_xcoro));
+
 	list_head_init(&g_xcoro->ready_list);
 	sprintf(g_xcoro->sched_task.name, "sched %p", xcoro);
+	g_xcoro->running_task = &g_xcoro->sched_task;
 }
 
 void xcoro_run(void)
 {
 	while (!list_empty(&g_xcoro->ready_list)) {
-		_switch(&_xcoro_get_next_task()->ctx, &g_xcoro->sched_task.ctx);
+		xcoro_schedule();
 	}
 }
 
@@ -132,4 +150,15 @@ xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry
 
 	_xcoro_task_init(task);
 	list_add_tail(&task->list, &g_xcoro->ready_list);
+}
+
+void xcoro_yield(void)
+{
+	xcoro_task_t *this_task = g_xcoro->running_task;
+
+	// Move to the end of the ready list
+	list_move_tail(&this_task->list, &g_xcoro->ready_list);
+
+	// Schedule the next one (could be the same task though!)
+	xcoro_schedule();
 }

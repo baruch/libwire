@@ -10,12 +10,20 @@ char task_bye_stack[4096];
 
 static void hello(void *msg)
 {
-	printf("hello %s\n", msg);
+	int i = 0;
+	while (i++ < 5) {
+		printf("hello %s\n", msg);
+		xcoro_yield();
+	}
 }
 
 static void bye(void *msg)
 {
-	printf("bye %s\n", msg);
+	int i = 0;
+	while (i++ < 6) {
+		printf("bye %s\n", msg);
+		xcoro_yield();
+	}
 }
 
 int main()
