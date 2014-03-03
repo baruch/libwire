@@ -66,6 +66,7 @@ lib_objs = []
 for source in lib_srcs:
         lib_objs += cc(source, src)
 lib = n.build('xcoro.a', 'ar', lib_objs)
+n.newline()
 
 test_exec = []
 for test in test_srcs.keys():
@@ -73,3 +74,13 @@ for test in test_srcs.keys():
         for source in test_srcs[test]:
                 objs += cc(source, btest)
         test_exec += n.build(test, 'link', objs, implicit=lib, variables=[('libs', lib)])
+
+n.newline()
+
+n.rule('configure',
+        command='./configure',
+        description='CONFIGURE build.ninja',
+        generator=True
+        )
+n.build('build.ninja', 'configure', implicit='./configure')
+n.newline()
