@@ -1,5 +1,6 @@
 base
 echo_server
+recurser
 xcoro.a
 
 built/
