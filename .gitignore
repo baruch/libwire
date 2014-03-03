@@ -3,6 +3,7 @@ echo_server
 recurser
 xcoro.a
 
+docs/
 built/
 build.ninja
 .ninja*

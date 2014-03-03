@@ -66,10 +66,13 @@ def built(filename):
 def cc(filename, src, **kwargs):
         return n.build(built(filename) + '.o', 'c', src(filename) + '.c', **kwargs)
 
+all_targets = []
+
 lib_objs = []
 for source in lib_srcs:
         lib_objs += cc(source, src)
 lib = n.build('xcoro.a', 'ar', lib_objs)
+all_targets += lib
 n.newline()
 
 test_exec = []
@@ -78,6 +81,7 @@ for test in test_srcs.keys():
         for source in test_srcs[test]:
                 objs += cc(source, btest)
         test_exec += n.build(test, 'link', objs, implicit=lib, variables=[('libs', lib)])
+        all_targets += test_exec
 
 n.newline()
 
@@ -86,12 +90,22 @@ n.rule('configure',
         description='CONFIGURE build.ninja',
         generator=True
         )
-n.build('build.ninja', 'configure', implicit='./configure')
+all_targets += n.build('build.ninja', 'configure', implicit='./configure')
 n.newline()
 
 n.rule('tags',
         command='ctags $in',
         description='CTAGS $out'
         )
-n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs])
+all_targets += n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs])
 n.newline()
+
+n.comment('Create doxygen docs, requires explicit build: ninja doxygen')
+n.rule('doxygen',
+        command='doxygen $in',
+        description='DOXYGEN $in')
+n.build('doxygen', 'doxygen', 'doxygen.config')
+n.newline()
+
+n.build('all', 'phony', all_targets)
+n.default('all')
