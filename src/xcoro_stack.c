@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef USE_VALGRIND
+#include "valgrind/valgrind.h"
+#else
+#define VALGRIND_STACK_REGISTER(start, end)
+#endif
+
 static void *base;
 static const unsigned alloc_size = 10*1024*1024;
 static unsigned used_size;
@@ -35,5 +41,6 @@ void *xcoro_stack_alloc(unsigned stack_size)
 	base += stack_size + 4096;
 	used_size += stack_size + 4096;
 
+	VALGRIND_STACK_REGISTER(ptr, ptr + stack_size);
 	return ptr;
 }
