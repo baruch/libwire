@@ -1,3 +1,7 @@
 base
 echo_server
-*.o
+xcoro.a
+
+built/
+build.ninja
+.ninja*
