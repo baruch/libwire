@@ -2,6 +2,7 @@
 #include "xcoro_fd.h"
 
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/epoll.h>
@@ -83,7 +84,7 @@ int xcoro_fd_wait_read(int fd)
 	return xcoro_fd_one_shot_action(fd, EPOLLIN);
 }
 
-int xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd)
+void xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd)
 {
 	state->fd = fd;
 	state->state = FD_MODE_NONE;
@@ -94,7 +95,7 @@ static int xcoro_fd_mode_switch(xcoro_fd_state_t *fd_state, xcoro_fd_mode_e end_
 	int op;
 
 	if (end_mode == fd_state->state)
-		return;
+		return 0;
 
 	if (end_mode == FD_MODE_NONE)
 		op = EPOLL_CTL_DEL;

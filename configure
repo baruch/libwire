@@ -9,7 +9,7 @@ test_srcs = {
         'echo_server': ('echo_server',),
 }
 
-cflags = ['-Iinclude', '-g', '-O0'] #, '-Wall', '-Werror']
+cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror']
 ldflags = []
 
 import os, os.path

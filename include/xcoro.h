@@ -10,6 +10,8 @@ void xcoro_run(void);
 void xcoro_yield(void);
 xcoro_task_t *xcoro_get_current_task(void);
 int xcoro_is_only_task(void);
+void xcoro_resume(xcoro_task_t *task);
+void xcoro_suspend(void);
 
 xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size);
 

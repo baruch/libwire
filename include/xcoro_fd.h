@@ -17,7 +17,7 @@ typedef struct xcoro_fd_state {
 	xcoro_fd_mode_e state;
 } xcoro_fd_state_t;
 
-int xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd);
+void xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd);
 int xcoro_fd_mode_read(xcoro_fd_state_t *fd_state);
 int xcoro_fd_mode_write(xcoro_fd_state_t *fd_state);
 int xcoro_fd_mode_none(xcoro_fd_state_t *fd_state);

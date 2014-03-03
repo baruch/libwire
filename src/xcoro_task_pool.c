@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <sys/mman.h>
+#include <stdio.h>
 
 struct wrapper_args {
 	void (*entry_point)(void *);
@@ -46,6 +47,7 @@ int xcoro_task_pool_init(xcoro_task_pool_t *pool, xcoro_task_pool_entry_t *entri
 	pool->entries = entries;
 	list_head_init(&pool->free_list);
 	list_head_init(&pool->active_list);
+	return 0;
 }
 
 static void wrapper_entry_point(void *arg)

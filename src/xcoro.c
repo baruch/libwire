@@ -156,6 +156,7 @@ xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry
 
 	_xcoro_task_init(task);
 	list_add_tail(&task->list, &g_xcoro->ready_list);
+	return task;
 }
 
 void xcoro_yield(void)
