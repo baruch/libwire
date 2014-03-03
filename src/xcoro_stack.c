@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #ifdef USE_VALGRIND
 #include "valgrind/valgrind.h"
@@ -10,15 +11,19 @@
 #define VALGRIND_STACK_REGISTER(start, end)
 #endif
 
+static unsigned page_size;
 static void *base;
 static const unsigned alloc_size = 10*1024*1024;
 static unsigned used_size;
 
 void *xcoro_stack_alloc(unsigned stack_size)
 {
-	unsigned stack_size_pages = (stack_size + 4095) / 4096;
-	stack_size = stack_size_pages * 4096;
-	unsigned full_size = stack_size + 4096;
+	if (!page_size)
+		page_size = sysconf(_SC_PAGE_SIZE);
+
+	unsigned stack_size_pages = (stack_size + page_size - 1) / page_size;
+	stack_size = stack_size_pages * page_size;
+	unsigned full_size = stack_size + page_size;
 
 	if (base == NULL || used_size + full_size > alloc_size) {
 		void *ptr = mmap(0, alloc_size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
@@ -27,8 +32,8 @@ void *xcoro_stack_alloc(unsigned stack_size)
 			return NULL;
 		}
 
-		base = ptr + 4096;
-		used_size = 4096;
+		base = ptr + page_size;
+		used_size = page_size;
 	}
 
 	void *ptr = base;
@@ -38,8 +43,8 @@ void *xcoro_stack_alloc(unsigned stack_size)
 		return NULL;
 	}
 
-	base += stack_size + 4096;
-	used_size += stack_size + 4096;
+	base += stack_size + page_size;
+	used_size += stack_size + page_size;
 
 	VALGRIND_STACK_REGISTER(ptr, ptr + stack_size);
 	return ptr;
