@@ -70,12 +70,17 @@ void task_echo_run(void *arg)
 {
 	int fd = (long int)arg;
 	int ret;
+	xcoro_fd_state_t fd_state;
+
+	xcoro_fd_mode_init(&fd_state, fd);
+	xcoro_fd_mode_read(&fd_state);
 
 	set_nonblock(fd);
 
 	do {
+		xcoro_fd_wait(&fd_state);
+
 		char buf[1024];
-		xcoro_fd_wait_read(fd);
 		ret = read(fd, buf, sizeof(buf));
 		if (ret == 0) {
 			break;
@@ -95,6 +100,7 @@ void task_echo_run(void *arg)
 		}
 	} while (ret >= 0);
 
+	xcoro_fd_mode_none(&fd_state);
 	close(fd);
 	printf("echo is done\n");
 }
@@ -105,8 +111,12 @@ void task_accept_run(void *arg)
 	if (fd < 0)
 		return;
 
+	xcoro_fd_state_t fd_state;
+	xcoro_fd_mode_init(&fd_state, fd);
+	xcoro_fd_mode_read(&fd_state);
+
 	while (1) {
-		xcoro_fd_wait_read(fd);
+		xcoro_fd_wait(&fd_state);
 		int new_fd = accept(fd, NULL, NULL);
 		if (new_fd >= 0) {
 			printf("New connection: %d\n", new_fd);

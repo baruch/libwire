@@ -83,6 +83,61 @@ int xcoro_fd_wait_read(int fd)
 	return xcoro_fd_one_shot_action(fd, EPOLLIN);
 }
 
+int xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd)
+{
+	state->fd = fd;
+	state->state = FD_MODE_NONE;
+}
+
+static int xcoro_fd_mode_switch(xcoro_fd_state_t *fd_state, xcoro_fd_mode_e end_mode)
+{
+	int op;
+
+	if (end_mode == fd_state->state)
+		return;
+
+	if (end_mode == FD_MODE_NONE)
+		op = EPOLL_CTL_DEL;
+	else if (fd_state->state == FD_MODE_NONE) {
+		op = EPOLL_CTL_ADD;
+	} else {
+		op = EPOLL_CTL_MOD;
+	}
+
+	uint32_t event_code = end_mode == FD_MODE_READ ? EPOLLIN : EPOLLOUT;
+	struct epoll_event event = { .events = event_code, .data.ptr = xcoro_get_current_task() };
+	int ret = epoll_ctl(state.epoll_fd, op, fd_state->fd, &event);
+	if (ret >= 0) {
+		fd_state->state = end_mode;
+		if (op == EPOLL_CTL_ADD)
+			xcoro_fd_action_added();
+		else if (op == EPOLL_CTL_DEL)
+			xcoro_fd_action_removed();
+	}
+	return ret;
+}
+
+int xcoro_fd_mode_read(xcoro_fd_state_t *fd_state)
+{
+	return xcoro_fd_mode_switch(fd_state, FD_MODE_READ);
+}
+
+int xcoro_fd_mode_write(xcoro_fd_state_t *fd_state)
+{
+	return xcoro_fd_mode_switch(fd_state, FD_MODE_WRITE);
+}
+
+int xcoro_fd_mode_none(xcoro_fd_state_t *fd_state)
+{
+	return xcoro_fd_mode_switch(fd_state, FD_MODE_NONE);
+}
+
+void xcoro_fd_wait(xcoro_fd_state_t *fd_state)
+{
+	if (fd_state->state != FD_MODE_NONE)
+		xcoro_suspend();
+}
+
 int xcoro_fd_wait_msec(int msecs)
 {
 	int fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC|TFD_NONBLOCK);
