@@ -1,5 +1,6 @@
 #include "xcoro.h"
 #include "xcoro_fd.h"
+#include "xcoro_stack.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -17,7 +18,6 @@ struct fd_state {
 static struct fd_state state;
 
 static xcoro_task_t fd_task;
-static char fd_task_stack[4096];
 
 static void xcoro_fd_action_added(void)
 {
@@ -174,7 +174,9 @@ int xcoro_fd_wait_msec(int msecs)
 
 void xcoro_fd_init(void)
 {
-	xcoro_task_init(&fd_task, "fd monitor", xcoro_fd_monitor, NULL, fd_task_stack, sizeof(fd_task_stack));
+	unsigned stack_size = 4096;
+	void *stack = xcoro_stack_alloc(stack_size);
+	xcoro_task_init(&fd_task, "fd monitor", xcoro_fd_monitor, NULL, stack, stack_size);
 
 	state.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (state.epoll_fd < 0) {

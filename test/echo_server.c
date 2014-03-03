@@ -1,6 +1,7 @@
 #include "xcoro.h"
 #include "xcoro_fd.h"
 #include "xcoro_task_pool.h"
+#include "xcoro_stack.h"
 #include "macros.h"
 #include <stdio.h>
 #include <unistd.h>
@@ -11,12 +12,9 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 
-xcoro_t xcoro_main;
-
-xcoro_task_t task_accept;
-char task_accept_stack[4096];
-
-xcoro_task_pool_t echo_pool;
+static xcoro_t xcoro_main;
+static xcoro_task_t task_accept;
+static xcoro_task_pool_t echo_pool;
 
 void set_nonblock(int fd)
 {
@@ -139,7 +137,7 @@ int main()
 	xcoro_init(&xcoro_main);
 	xcoro_fd_init();
 	xcoro_task_pool_init(&echo_pool, NULL, 6, 4096);
-	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, &task_accept_stack, sizeof(task_accept_stack));
+	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, xcoro_stack_alloc(4096), 4096);
 	xcoro_run();
 	return 0;
 }

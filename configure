@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'xcoro', 'xcoro_fd', 'xcoro_task_pool',
+        'xcoro', 'xcoro_fd', 'xcoro_task_pool', 'xcoro_stack'
 ]
 
 test_srcs = {

@@ -1,13 +1,12 @@
 #include "xcoro.h"
 #include "xcoro_fd.h"
+#include "xcoro_stack.h"
 #include "macros.h"
 #include <stdio.h>
 
-xcoro_t xcoro_main;
-xcoro_task_t task_hello;
-char task_hello_stack[4096];
-xcoro_task_t task_bye;
-char task_bye_stack[4096];
+static xcoro_t xcoro_main;
+static xcoro_task_t task_hello;
+static xcoro_task_t task_bye;
 
 static void do_msg(const char *base, const char *msg)
 {
@@ -39,8 +38,8 @@ int main()
 {
 	xcoro_init(&xcoro_main);
 	xcoro_fd_init();
-	xcoro_task_init(&task_hello, "hello", hello, "world!", &task_hello_stack, sizeof(task_hello_stack));
-	xcoro_task_init(&task_bye, "bye", bye, "world!", &task_bye_stack, sizeof(task_bye_stack));
+	xcoro_task_init(&task_hello, "hello", hello, "world!", xcoro_stack_alloc(4096), 4096);
+	xcoro_task_init(&task_bye, "bye", bye, "world!", xcoro_stack_alloc(4096), 4096);
 	xcoro_run();
 	return 0;
 }
