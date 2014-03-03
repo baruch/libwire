@@ -8,7 +8,6 @@
 struct wrapper_args {
 	void (*entry_point)(void *);
 	void *arg;
-	xcoro_task_t *source_task;
 	xcoro_task_pool_entry_t *entry;
 	xcoro_task_pool_t *pool;
 };
@@ -35,8 +34,6 @@ static void wrapper_entry_point(void *arg)
 	xcoro_task_pool_entry_t *entry = args->entry;
 	xcoro_task_pool_t *pool = args->pool;
 
-	xcoro_resume(args->source_task);
-
 	entry_point(arg);
 
 	list_move_head(&entry->list, &pool->free_list);
@@ -61,14 +58,19 @@ xcoro_task_t *xcoro_task_pool_alloc(xcoro_task_pool_t *pool, const char *name, v
 	}
 
 	list_add_head(&entry->list, &pool->active_list);
-	struct wrapper_args args = {
-		.entry_point = entry_point,
-		.arg = arg,
-		.source_task = xcoro_get_current_task(),
-		.entry = entry,
-		.pool = pool,
-	};
-	xcoro_task_init(&entry->task, name, wrapper_entry_point, &args, entry->stack, pool->stack_size);
-	xcoro_suspend();
+
+	/* This is a cool and ugly hack at the same time,
+	 * the arguments are placed in the coroutine stack to avoid the need to
+	 * allocate a new temporary space, it is placed at the end of the stack and
+	 * the coroutine will copy it to the start of the stack at the beginning.
+	 */
+
+	struct wrapper_args *args = entry->stack;
+	args->entry_point = entry_point;
+	args->arg = arg;
+	args->entry = entry;
+	args->pool = pool;
+
+	xcoro_task_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
 	return &entry->task;
 }
