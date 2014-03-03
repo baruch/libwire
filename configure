@@ -84,3 +84,10 @@ n.rule('configure',
         )
 n.build('build.ninja', 'configure', implicit='./configure')
 n.newline()
+
+n.rule('tags',
+        command='ctags $in',
+        description='CTAGS $out'
+        )
+n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs])
+n.newline()
