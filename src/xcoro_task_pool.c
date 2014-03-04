@@ -22,7 +22,6 @@ int xcoro_task_pool_init(xcoro_task_pool_t *pool, xcoro_task_pool_entry_t *entri
 	pool->stack_size = stack_size;
 	pool->entries = entries;
 	list_head_init(&pool->free_list);
-	list_head_init(&pool->active_list);
 	return 0;
 }
 
@@ -36,7 +35,7 @@ static void wrapper_entry_point(void *arg)
 
 	entry_point(arg);
 
-	list_move_head(&entry->list, &pool->free_list);
+	list_add_head(&entry->list, &pool->free_list);
 }
 
 xcoro_task_t *xcoro_task_pool_alloc(xcoro_task_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
@@ -57,7 +56,6 @@ xcoro_task_t *xcoro_task_pool_alloc(xcoro_task_pool_t *pool, const char *name, v
 		return NULL;
 	}
 
-	list_add_head(&entry->list, &pool->active_list);
 
 	/* This is a cool and ugly hack at the same time,
 	 * the arguments are placed in the coroutine stack to avoid the need to

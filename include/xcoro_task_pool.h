@@ -25,7 +25,6 @@ typedef struct xcoro_task_pool_entry xcoro_task_pool_entry_t;
 struct xcoro_task_pool {
 	struct xcoro_task_pool_entry *entries;
 	struct list_head free_list;
-	struct list_head active_list;
 	unsigned size;
 	unsigned num_inited;
 	unsigned stack_size;
