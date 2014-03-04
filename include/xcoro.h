@@ -1,12 +1,13 @@
 /** @file
- * XCoro main file. This includes the inner core of the XCoro library,
- * everything else is only supporting this to make it easier to use and can be
- * replaced if needed.
  */
 #ifndef XCORO_LIB_H
 #define XCORO_LIB_H
 
-/// @addtogroup Core
+/** @addtogroup Core
+ * XCoro main part. This includes the inner core of the XCoro library,
+ * everything else is only supporting this to make it easier to use and can be
+ * replaced if needed.
+ */
 /// @{
 
 /** The coroutine root.
