@@ -1,8 +1,9 @@
 #include "xcoro_task_pool.h"
 #include "xcoro_stack.h"
 #include "list.h"
-#include <stdlib.h>
+#include "valgrind_internal.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 
 struct wrapper_args {
@@ -56,6 +57,8 @@ xcoro_task_t *xcoro_task_pool_alloc(xcoro_task_pool_t *pool, const char *name, v
 		return NULL;
 	}
 
+	VALGRIND_MAKE_MEM_UNDEFINED(entry->stack, pool->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(&entry->task, sizeof(entry->task));
 
 	/* This is a cool and ugly hack at the same time,
 	 * the arguments are placed in the coroutine stack to avoid the need to

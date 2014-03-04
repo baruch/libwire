@@ -1,5 +1,6 @@
 #include "xcoro.h"
 #include "list.h"
+#include "valgrind_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,6 +105,10 @@ static void _exec(xcoro_task_t *task)
 
 	// We exited from the task, we shouldn't come back anymore
 	list_del(&task->list);
+
+	// Invalidate memory in valgrind
+	VALGRIND_MAKE_MEM_UNDEFINED(task->stack, task->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(task, sizeof(*task));
 
 	// Now switch to the next task
 	xcoro_schedule();

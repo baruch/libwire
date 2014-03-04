@@ -1,15 +1,10 @@
 #include "xcoro_stack.h"
+#include "valgrind_internal.h"
 
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-
-#ifdef USE_VALGRIND
-#include "valgrind/valgrind.h"
-#else
-#define VALGRIND_STACK_REGISTER(start, end)
-#endif
 
 static unsigned page_size;
 static void *base;
