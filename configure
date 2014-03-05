@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'xcoro', 'xcoro_fd', 'xcoro_task_pool', 'xcoro_stack'
+        'xcoro', 'xcoro_fd', 'xcoro_task_pool', 'xcoro_stack', 'ebb_request_parser'
 ]
 
 test_srcs = {
         'base': ('base',),
         'echo_server': ('echo_server',),
         'recurser': ('recurser',),
+        'web': ('web',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror']
@@ -82,7 +83,23 @@ for test in test_srcs.keys():
                 objs += cc(source, btest)
         test_exec += n.build(test, 'link', objs, implicit=lib, variables=[('libs', lib)])
         all_targets += test_exec
+n.newline()
 
+def is_in_path(filename):
+        for d in os.environ['PATH'].split(':'):
+                fullname = os.path.join(d, filename)
+                if os.path.exists(fullname):
+                        return True
+        return False
+
+if is_in_path('ragel'):
+        n.rule('ragel',
+               command='ragel $in -o $out',
+               description='RAGEL $out')
+else:
+        n.rule('ragel',
+               command='echo "Need to install ragel to perform the build." && rm -f ninja.build && exit 1')
+n.build('src/ebb_request_parser.c', 'ragel', 'src/ebb_request_parser.rl')
 n.newline()
 
 n.rule('configure',
