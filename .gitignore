@@ -1,6 +1,7 @@
 base
 echo_server
 recurser
+web
 xcoro.a
 
 docs/
