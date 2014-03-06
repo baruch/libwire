@@ -97,7 +97,7 @@ n.rule('tags',
         command='ctags $in',
         description='CTAGS $out'
         )
-all_targets += n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs])
+all_targets += n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs] + [os.path.join('include', name) for name in os.listdir('include')])
 n.newline()
 
 n.comment('Create doxygen docs, requires explicit build: ninja doxygen')
