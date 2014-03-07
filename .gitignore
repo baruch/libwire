@@ -2,6 +2,7 @@ base
 echo_server
 recurser
 web
+channel
 xcoro.a
 
 docs/
