@@ -72,7 +72,7 @@ all_targets = []
 lib_objs = []
 for source in lib_srcs:
         lib_objs += cc(source, src)
-lib = n.build('xcoro.a', 'ar', lib_objs)
+lib = n.build('libxcoro.a', 'ar', lib_objs)
 all_targets += lib
 n.newline()
 
