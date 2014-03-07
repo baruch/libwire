@@ -25,6 +25,11 @@
  */
 void *xcoro_stack_alloc(unsigned stack_size);
 
+/** A convenience method to provide as an argument to xcoro_task_init(). This is to be used as:
+ * xcoro_task_init(&task, "name", entry_point, arg, XCORO_STACK_ALLOC(4096));
+ */
+#define XCORO_STACK_ALLOC(size) xcoro_stack_alloc(size), size
+
 /// @}
 
 #endif

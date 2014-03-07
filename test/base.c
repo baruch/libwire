@@ -38,8 +38,8 @@ int main()
 {
 	xcoro_init(&xcoro_main);
 	xcoro_fd_init();
-	xcoro_task_init(&task_hello, "hello", hello, "world!", xcoro_stack_alloc(4096), 4096);
-	xcoro_task_init(&task_bye, "bye", bye, "world!", xcoro_stack_alloc(4096), 4096);
+	xcoro_task_init(&task_hello, "hello", hello, "world!", XCORO_STACK_ALLOC(4096));
+	xcoro_task_init(&task_bye, "bye", bye, "world!", XCORO_STACK_ALLOC(4096));
 	xcoro_run();
 	return 0;
 }

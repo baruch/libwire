@@ -174,9 +174,7 @@ int xcoro_fd_wait_msec(int msecs)
 
 void xcoro_fd_init(void)
 {
-	unsigned stack_size = 4096;
-	void *stack = xcoro_stack_alloc(stack_size);
-	xcoro_task_init(&fd_task, "fd monitor", xcoro_fd_monitor, NULL, stack, stack_size);
+	xcoro_task_init(&fd_task, "fd monitor", xcoro_fd_monitor, NULL, XCORO_STACK_ALLOC(4096));
 
 	state.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (state.epoll_fd < 0) {

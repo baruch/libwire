@@ -137,7 +137,7 @@ int main()
 	xcoro_init(&xcoro_main);
 	xcoro_fd_init();
 	xcoro_task_pool_init(&echo_pool, NULL, 6, 4096);
-	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, xcoro_stack_alloc(4096), 4096);
+	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, XCORO_STACK_ALLOC(4096));
 	xcoro_run();
 	return 0;
 }
