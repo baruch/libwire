@@ -3,7 +3,7 @@ echo_server
 recurser
 web
 channel
-xcoro.a
+libxcoro.a
 
 docs/
 built/
