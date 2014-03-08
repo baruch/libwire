@@ -106,7 +106,10 @@ static int xcoro_fd_mode_switch(xcoro_fd_state_t *fd_state, xcoro_fd_mode_e end_
 	}
 
 	uint32_t event_code = end_mode == FD_MODE_READ ? EPOLLIN : EPOLLOUT;
-	struct epoll_event event = { .events = event_code, .data.ptr = xcoro_get_current_task() };
+	struct epoll_event event = {
+		.events = event_code,
+		.data.ptr = xcoro_get_current_task()
+	};
 	int ret = epoll_ctl(state.epoll_fd, op, fd_state->fd, &event);
 	if (ret >= 0) {
 		fd_state->state = end_mode;
