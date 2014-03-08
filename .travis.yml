@@ -6,7 +6,7 @@ before_install:
 
 install: sudo apt-get install ninja-build
 
-script: ./configure && ninja && ./base && ./waiters && ./channel
+script: ./configure.py && ninja && ./base && ./waiters && ./channel
 
 compiler:
   - gcc
