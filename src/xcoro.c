@@ -73,6 +73,8 @@ static xcoro_task_t *_xcoro_get_next_task(void)
 		return task;
 	}
 
+	// If we have nowhere to switch to, switch to the original starting stack
+	// This will most likely result with us exiting from the application.
 	return &g_xcoro->sched_task;
 }
 
