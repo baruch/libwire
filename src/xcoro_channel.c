@@ -47,6 +47,8 @@ int xcoro_channel_recv_nonblock(xcoro_channel_t *c, void **msg)
 	if (list == NULL)
 		return -1;
 
+	list_del(list);
+
 	struct xcoro_msg *xmsg = list_entry(list, struct xcoro_msg, list);
 	list_head_init(&xmsg->list); // Tell the caller we have taken the data
 	xcoro_resume(xmsg->caller);
