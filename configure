@@ -6,9 +6,9 @@ lib_srcs = [
 
 test_srcs = {
         'base': ('base',),
-        'echo_server': ('echo_server',),
+        'echo_server': ('echo_server', 'utils'),
         'recurser': ('recurser',),
-        'web': ('web',),
+        'web': ('web', 'utils'),
         'channel': ('channel',),
 }
 
@@ -66,7 +66,7 @@ def btest(filename):
 def built(filename):
         return os.path.join('built', filename)
 def cc(filename, src, **kwargs):
-        return n.build(built(filename) + '.o', 'c', src(filename) + '.c', **kwargs)
+        return n.build(built(src(filename)) + '.o', 'c', src(filename) + '.c', **kwargs)
 
 all_targets = []
 
@@ -78,10 +78,16 @@ all_targets += lib
 n.newline()
 
 test_exec = []
+test_objs = {}
 for test in test_srcs.keys():
         objs = []
         for source in test_srcs[test]:
-                objs += cc(source, btest)
+                if source in test_objs.keys():
+                        objs += test_objs[source]
+                else:
+                        obj = cc(source, btest)
+                        test_objs[source] = obj
+                        objs += obj
         test_exec += n.build(test, 'link', objs, implicit=lib, variables=[('libs', lib)])
         all_targets += test_exec
 n.newline()
