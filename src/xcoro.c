@@ -99,7 +99,7 @@ static void _exec(xcoro_task_t *task)
 {
 
 #if defined(__llvm__) && defined(__x86_64__)
-  __asm__ ("movq 16(%%rbp), %[lt]" : [task] "=r" (task));
+  __asm__ ("movq 16(%%rbp), %[task]" : [task] "=r" (task));
 #endif
     task->entry_point(task->arg);
 
