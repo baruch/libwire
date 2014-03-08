@@ -3,6 +3,7 @@ echo_server
 recurser
 web
 channel
+waiters
 libxcoro.a
 
 docs/

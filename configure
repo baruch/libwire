@@ -10,6 +10,7 @@ test_srcs = {
         'recurser': ('recurser',),
         'web': ('web', 'utils'),
         'channel': ('channel',),
+        'waiters': ('waiters',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror']
