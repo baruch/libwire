@@ -1,6 +1,8 @@
 libxcoro
 --------
 
+[![Build Status](https://travis-ci.org/baruch/libxcoro.png?branch=master)](https://travis-ci.org/baruch/libxcoro)
+
 libxcoro is a coroutine library that is intended to provide in C some semblance
 of the GoLang environment. Namely, lightweight user-space cooperative threading
 and communication channels between them. Unlike Go this is squarely intended at
