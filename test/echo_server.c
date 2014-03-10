@@ -59,6 +59,7 @@ void task_echo_run(void *arg)
 
 void task_accept_run(void *arg)
 {
+	UNUSED(arg);
 	int fd = socket_setup(9876);
 	if (fd < 0)
 		return;

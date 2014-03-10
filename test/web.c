@@ -27,6 +27,7 @@ struct web_data {
 
 static int on_message_begin(http_parser *parser)
 {
+	UNUSED(parser);
 	printf("Message begin\n");
 	return 0;
 }
@@ -41,12 +42,12 @@ static int buf_write(xcoro_fd_state_t *fd_state, const char *buf, int len)
 {
 	int sent = 0;
 	do {
-		int ret = write(fd_state->fd, buf + sent, strlen(buf) - sent);
+		int ret = write(fd_state->fd, buf + sent, len - sent);
 		if (ret == 0)
 			return -1;
 		else if (ret > 0) {
 			sent += ret;
-			if (sent == strlen(buf))
+			if (sent == len)
 				return 0;
 		} else {
 			// Error
@@ -76,30 +77,35 @@ static int on_message_complete(http_parser *parser)
 
 static int on_url(http_parser *parser, const char *at, size_t length)
 {
+	UNUSED(parser);
 	printf("URL: %.*s\n", (int)length, at);
 	return 0;
 }
 
 static int on_status(http_parser *parser, const char *at, size_t length)
 {
+	UNUSED(parser);
 	printf("STATUS: %.*s\n", (int)length, at);
 	return 0;
 }
 
 static int on_header_field(http_parser *parser, const char *at, size_t length)
 {
+	UNUSED(parser);
 	printf("HEADER FIELD: %.*s\n", (int)length, at);
 	return 0;
 }
 
 static int on_header_value(http_parser *parser, const char *at, size_t length)
 {
+	UNUSED(parser);
 	printf("HEADER VALUE: %.*s\n", (int)length, at);
 	return 0;
 }
 
 static int on_body(http_parser *parser, const char *at, size_t length)
 {
+	UNUSED(parser);
 	printf("BODY: %.*s\n", (int)length, at);
 	return 0;
 }
@@ -163,7 +169,7 @@ void task_web_run(void *arg)
 			// At EOF, exit now
 			printf("Received EOF\n");
 			break;
-		} else if (processed != received) {
+		} else if (processed != (size_t)received) {
 			// Error in parsing
 			printf("Not everything was parsed, error is likely, bailing out.\n");
 			break;
@@ -176,6 +182,7 @@ void task_web_run(void *arg)
 
 void task_accept_run(void *arg)
 {
+	UNUSED(arg);
 	int fd = socket_setup(9090);
 	if (fd < 0)
 		return;

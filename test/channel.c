@@ -12,6 +12,7 @@ static xcoro_channel_t ch;
 
 static void producer(void *arg)
 {
+	UNUSED(arg);
 	int val = 42;
 	xcoro_channel_send(&ch, &val);
 	printf("Producer finished\n");
@@ -19,6 +20,7 @@ static void producer(void *arg)
 
 static void consumer(void *arg)
 {
+	UNUSED(arg);
 	void *msg;
 	xcoro_channel_recv(&ch, &msg);
 

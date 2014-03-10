@@ -54,6 +54,7 @@ static int xcoro_fd_one_shot_action(int fd, uint32_t event_type)
 
 static void xcoro_fd_monitor(void *arg)
 {
+	UNUSED(arg);
 	printf("fd monitor starts\n");
 
 	while (1) {
@@ -159,7 +160,7 @@ int xcoro_fd_wait_msec(int msecs)
 	while (ret >= 0 && xcoro_fd_wait_read(fd) >= 0) {
 		uint64_t timer_val = 0;
 		ret = read(fd, &timer_val, sizeof(timer_val));
-		if (ret < sizeof(timer_val)) {
+		if (ret < (int)sizeof(timer_val)) {
 			perror("Error reading from timerfd");
 			ret = -1;
 			break;

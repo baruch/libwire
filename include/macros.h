@@ -11,4 +11,8 @@
 #define container_of(ptr, type, field) ((type*)((void*)ptr - (void*)offsetof(type, field)))
 #endif
 
+#ifndef UNUSED
+#define UNUSED(x) (void)(x)
+#endif
+
 #endif
