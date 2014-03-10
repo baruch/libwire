@@ -13,8 +13,8 @@ test_srcs = {
         'waiters': ('waiters',),
 }
 
-cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wno-format-nonliteral', '-Wshadow',
-          '-Wcast-qual', '-Wmissing-prototypes', '-Wno-missing-braces']
+cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
+          '-Wcast-qual', '-Wmissing-prototypes', '-Winit-self']
 ldflags = []
 
 import os, os.path
