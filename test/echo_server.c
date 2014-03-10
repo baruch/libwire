@@ -18,7 +18,7 @@ static xcoro_t xcoro_main;
 static xcoro_task_t task_accept;
 static xcoro_task_pool_t echo_pool;
 
-void task_echo_run(void *arg)
+static void task_echo_run(void *arg)
 {
 	int fd = (long int)arg;
 	int ret;
@@ -57,7 +57,7 @@ void task_echo_run(void *arg)
 	printf("echo is done\n");
 }
 
-void task_accept_run(void *arg)
+static void task_accept_run(void *arg)
 {
 	UNUSED(arg);
 	int fd = socket_setup(9876);

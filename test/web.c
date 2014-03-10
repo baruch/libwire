@@ -122,7 +122,7 @@ static const struct http_parser_settings parser_settings = {
 	.on_body = on_body,
 };
 
-void task_web_run(void *arg)
+static void task_web_run(void *arg)
 {
 	struct web_data d = {
 		.fd = (long int)arg,
@@ -180,7 +180,7 @@ void task_web_run(void *arg)
 	close(d.fd);
 }
 
-void task_accept_run(void *arg)
+static void task_accept_run(void *arg)
 {
 	UNUSED(arg);
 	int fd = socket_setup(9090);
