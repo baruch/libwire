@@ -85,10 +85,10 @@ int xcoro_fd_wait_read(int fd)
 	return xcoro_fd_one_shot_action(fd, EPOLLIN);
 }
 
-void xcoro_fd_mode_init(xcoro_fd_state_t *state, int fd)
+void xcoro_fd_mode_init(xcoro_fd_state_t *st, int fd)
 {
-	state->fd = fd;
-	state->state = FD_MODE_NONE;
+	st->fd = fd;
+	st->state = FD_MODE_NONE;
 }
 
 static int xcoro_fd_mode_switch(xcoro_fd_state_t *fd_state, xcoro_fd_mode_e end_mode)
