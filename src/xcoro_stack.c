@@ -86,8 +86,9 @@ void xcoro_stack_fault_detector_install(void)
 	stack_t alt_stack;
 
 	// Set an alternative stack, the one of the coroutine will not be enough
-	alt_stack.ss_sp = xcoro_stack_alloc(SIGSTKSZ*2);
-	alt_stack.ss_size = SIGSTKSZ*2;
+	const int stack_size = 16*1024;
+	alt_stack.ss_sp = xcoro_stack_alloc(stack_size);
+	alt_stack.ss_size = stack_size;
 	alt_stack.ss_flags = 0;
 	sigaltstack(&alt_stack, NULL);
 
