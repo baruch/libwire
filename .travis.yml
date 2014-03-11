@@ -10,4 +10,4 @@ script: gcc -v && ./configure.py && ninja -v && ./base && ./waiters && ./channel
 
 compiler:
   - gcc
-  #- clang
+  - clang
