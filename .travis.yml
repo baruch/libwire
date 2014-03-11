@@ -11,3 +11,7 @@ script: gcc -v && ./configure.py && ninja -v && ./base && ./waiters && ./channel
 compiler:
   - gcc
   - clang
+
+env:
+  - CFLAGS="-O3"
+  - CFLAGS="-O0"
