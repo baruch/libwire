@@ -75,7 +75,7 @@ n.rule('ar',
 n.newline()
 
 n.rule('link',
-        command='$cc $ldflags -o $out $in $libs',
+        command='$cc -o $out $in $libs $ldflags',
         description='LINK $out'
 )
 n.newline()
