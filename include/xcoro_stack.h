@@ -30,6 +30,15 @@ void *xcoro_stack_alloc(unsigned stack_size);
  */
 #define XCORO_STACK_ALLOC(size) xcoro_stack_alloc(size), size
 
+
+/** Setup a stack overflow/underflow monitor detector. The stack
+ * over/under-flow detector will setup a SIGSEGV handler that attempts to
+ * detect a segmentation fault caused by an access within a boundary of the
+ * existing stack and alert to that to make understanding the failure easier on
+ * the developer.
+ */
+void xcoro_stack_fault_detector_install(void);
+
 /// @}
 
 #endif
