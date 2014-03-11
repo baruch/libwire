@@ -16,7 +16,7 @@ test_srcs = {
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
           '-Wmissing-prototypes', '-Winit-self', '-pipe']
-ldflags = []
+ldflags = ['-lrt']
 
 import os, os.path
 import ninja_syntax
