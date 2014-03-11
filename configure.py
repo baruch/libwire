@@ -11,6 +11,7 @@ test_srcs = {
         'web': ('web', 'utils'),
         'channel': ('channel',),
         'waiters': ('waiters',),
+        'bench': ('bench',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
