@@ -23,12 +23,12 @@
  * multiple of the architecture page size and a protection zone of one page is
  * placed before and after each stack.
  */
-void *xcoro_stack_alloc(unsigned stack_size);
+void *wire_stack_alloc(unsigned stack_size);
 
-/** A convenience method to provide as an argument to xcoro_task_init(). This is to be used as:
- * xcoro_task_init(&task, "name", entry_point, arg, XCORO_STACK_ALLOC(4096));
+/** A convenience method to provide as an argument to wire_task_init(). This is to be used as:
+ * wire_task_init(&task, "name", entry_point, arg, XCORO_STACK_ALLOC(4096));
  */
-#define XCORO_STACK_ALLOC(size) xcoro_stack_alloc(size), size
+#define XCORO_STACK_ALLOC(size) wire_stack_alloc(size), size
 
 
 /** Setup a stack overflow/underflow monitor detector. The stack
@@ -37,7 +37,7 @@ void *xcoro_stack_alloc(unsigned stack_size);
  * existing stack and alert to that to make understanding the failure easier on
  * the developer.
  */
-void xcoro_stack_fault_detector_install(void);
+void wire_stack_fault_detector_install(void);
 
 /// @}
 

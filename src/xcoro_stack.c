@@ -1,7 +1,7 @@
-#include "xcoro_stack.h"
+#include "wire_stack.h"
 #include "valgrind_internal.h"
 #include "macros.h"
-#include "xcoro.h"
+#include "wire.h"
 
 #include <sys/mman.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@ static void *base;
 static const unsigned alloc_size = 10*1024*1024;
 static unsigned used_size;
 
-void *xcoro_stack_alloc(unsigned stack_size)
+void *wire_stack_alloc(unsigned stack_size)
 {
 	if (!page_size)
 		page_size = sysconf(_SC_PAGE_SIZE);
@@ -66,7 +66,7 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *unused)
 	UNUSED(unused);
 	UNUSED(sig);
 
-	xcoro_task_t *task = xcoro_get_current_task();
+	wire_task_t *task = wire_get_current_task();
 
 	fprintf(stderr, "Current running task: %s\n", task->name);
 	fprintf(stderr, "Got SIGSEGV at address: %p reason: %s\n", si->si_addr, sigsegv_code(si->si_code));
@@ -80,14 +80,14 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *unused)
 	raise(SIGSEGV);
 }
 
-void xcoro_stack_fault_detector_install(void)
+void wire_stack_fault_detector_install(void)
 {
 	struct sigaction sa;
 	stack_t alt_stack;
 
 	// Set an alternative stack, the one of the coroutine will not be enough
 	const int stack_size = 16*1024;
-	alt_stack.ss_sp = xcoro_stack_alloc(stack_size);
+	alt_stack.ss_sp = wire_stack_alloc(stack_size);
 	alt_stack.ss_size = stack_size;
 	alt_stack.ss_flags = 0;
 	sigaltstack(&alt_stack, NULL);

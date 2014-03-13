@@ -1,9 +1,9 @@
-libxcoro
+libwire
 --------
 
-[![Build Status](https://travis-ci.org/baruch/libxcoro.png?branch=master)](https://travis-ci.org/baruch/libxcoro)
+[![Build Status](https://travis-ci.org/baruch/libwire.png?branch=master)](https://travis-ci.org/baruch/libwire)
 
-libxcoro is a coroutine library that is intended to provide in C some semblance
+libwire is a coroutine library that is intended to provide in C some semblance
 of the GoLang environment. Namely, lightweight user-space cooperative threading
 and communication channels between them. Unlike Go this is squarely intended at
 high performance system-level programming that cares enough about memory

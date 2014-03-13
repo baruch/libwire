@@ -1,11 +1,11 @@
-#include "xcoro.h"
-#include "xcoro_fd.h"
-#include "xcoro_stack.h"
+#include "wire.h"
+#include "wire_fd.h"
+#include "wire_stack.h"
 #include "macros.h"
 #include <stdio.h>
 
-static xcoro_t xcoro_main;
-static xcoro_task_t task_recurse;
+static wire_t wire_main;
+static wire_task_t task_recurse;
 
 static void do_recurse(int count)
 {
@@ -22,12 +22,12 @@ static void recurser(void *arg)
 
 int main()
 {
-	xcoro_stack_fault_detector_install();
-	xcoro_init(&xcoro_main);
-	xcoro_fd_init();
+	wire_stack_fault_detector_install();
+	wire_init(&wire_main);
+	wire_fd_init();
 
-	xcoro_task_init(&task_recurse, "hello", recurser, NULL, xcoro_stack_alloc(4096), 4096);
+	wire_task_init(&task_recurse, "hello", recurser, NULL, wire_stack_alloc(4096), 4096);
 
-	xcoro_run();
+	wire_run();
 	return 0;
 }

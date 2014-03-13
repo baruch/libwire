@@ -1,7 +1,7 @@
-#include "xcoro.h"
-#include "xcoro_fd.h"
-#include "xcoro_task_pool.h"
-#include "xcoro_stack.h"
+#include "wire.h"
+#include "wire_fd.h"
+#include "wire_task_pool.h"
+#include "wire_stack.h"
 #include "macros.h"
 #include "http_parser.h"
 
@@ -16,13 +16,13 @@
 
 #include "utils.h"
 
-static xcoro_t xcoro_main;
-static xcoro_task_t task_accept;
-static xcoro_task_pool_t web_pool;
+static wire_t wire_main;
+static wire_task_t task_accept;
+static wire_task_pool_t web_pool;
 
 struct web_data {
 	int fd;
-	xcoro_fd_state_t fd_state;
+	wire_fd_state_t fd_state;
 };
 
 static int on_message_begin(http_parser *parser)
@@ -38,7 +38,7 @@ static int on_headers_complete(http_parser *parser)
 	return 0;
 }
 
-static int buf_write(xcoro_fd_state_t *fd_state, const char *buf, int len)
+static int buf_write(wire_fd_state_t *fd_state, const char *buf, int len)
 {
 	int sent = 0;
 	do {
@@ -55,8 +55,8 @@ static int buf_write(xcoro_fd_state_t *fd_state, const char *buf, int len)
 				return -1;
 		}
 
-		xcoro_fd_mode_write(fd_state);
-		xcoro_fd_wait(fd_state);
+		wire_fd_mode_write(fd_state);
+		wire_fd_wait(fd_state);
 	} while (1);
 }
 
@@ -129,8 +129,8 @@ static void task_web_run(void *arg)
 	};
 	http_parser parser;
 
-	xcoro_fd_mode_init(&d.fd_state, d.fd);
-	xcoro_fd_mode_read(&d.fd_state);
+	wire_fd_mode_init(&d.fd_state, d.fd);
+	wire_fd_mode_read(&d.fd_state);
 
 	set_nonblock(d.fd);
 
@@ -150,7 +150,7 @@ static void task_web_run(void *arg)
 			if (errno == EINTR || errno == EAGAIN) {
 				printf("Waiting\n");
 				/* Nothing received yet, wait for it */
-				xcoro_fd_wait(&d.fd_state);
+				wire_fd_wait(&d.fd_state);
 				printf("Done waiting\n");
 				continue;
 			} else {
@@ -176,7 +176,7 @@ static void task_web_run(void *arg)
 		}
 	} while (1);
 
-	xcoro_fd_mode_none(&d.fd_state);
+	wire_fd_mode_none(&d.fd_state);
 	close(d.fd);
 }
 
@@ -187,18 +187,18 @@ static void task_accept_run(void *arg)
 	if (fd < 0)
 		return;
 
-	xcoro_fd_state_t fd_state;
-	xcoro_fd_mode_init(&fd_state, fd);
-	xcoro_fd_mode_read(&fd_state);
+	wire_fd_state_t fd_state;
+	wire_fd_mode_init(&fd_state, fd);
+	wire_fd_mode_read(&fd_state);
 
 	while (1) {
-		xcoro_fd_wait(&fd_state);
+		wire_fd_wait(&fd_state);
 		int new_fd = accept(fd, NULL, NULL);
 		if (new_fd >= 0) {
 			printf("New connection: %d\n", new_fd);
 			char name[32];
 			snprintf(name, sizeof(name), "web %d", new_fd);
-			xcoro_task_t *task = xcoro_task_pool_alloc(&web_pool, name, task_web_run, (void*)(long int)new_fd);
+			wire_task_t *task = wire_task_pool_alloc(&web_pool, name, task_web_run, (void*)(long int)new_fd);
 			if (!task) {
 				printf("Web server is busy, sorry\n");
 				close(new_fd);
@@ -214,10 +214,10 @@ static void task_accept_run(void *arg)
 
 int main()
 {
-	xcoro_init(&xcoro_main);
-	xcoro_fd_init();
-	xcoro_task_pool_init(&web_pool, NULL, 16, 16*1024);
-	xcoro_task_init(&task_accept, "accept", task_accept_run, NULL, XCORO_STACK_ALLOC(4096));
-	xcoro_run();
+	wire_init(&wire_main);
+	wire_fd_init();
+	wire_task_pool_init(&web_pool, NULL, 16, 16*1024);
+	wire_task_init(&task_accept, "accept", task_accept_run, NULL, XCORO_STACK_ALLOC(4096));
+	wire_run();
 	return 0;
 }

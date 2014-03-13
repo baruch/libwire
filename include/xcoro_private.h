@@ -1,9 +1,9 @@
-// This must be included only from the xcoro.h
+// This must be included only from the wire.h
 
 #include "list.h"
 #include "coro.h"
 
-struct xcoro_task {
+struct wire_task {
 	coro_context ctx;
 	char name[32];
 	void (*entry_point)(void *);
@@ -13,9 +13,9 @@ struct xcoro_task {
 	struct list_head list;
 };
 
-struct xcoro {
-	xcoro_task_t sched_task;
+struct wire {
+	wire_task_t sched_task;
 	struct list_head ready_list;
 	struct list_head suspend_list;
-	xcoro_task_t *running_task;
+	wire_task_t *running_task;
 };

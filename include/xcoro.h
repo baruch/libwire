@@ -12,51 +12,51 @@
 
 /** The coroutine root.
  *
- * When xcoro will support multiple threads there will be one xcoro_t for each coroutine thread.
+ * When wire will support multiple threads there will be one wire_t for each coroutine thread.
  */
-typedef struct xcoro xcoro_t;
+typedef struct wire wire_t;
 
 /** The coroutine task. This represents an actual coroutine with all of its associated gear.
- * It can be allocted by the user or brought it by the xcoro_task_pool.
+ * It can be allocted by the user or brought it by the wire_task_pool.
  */
-typedef struct xcoro_task xcoro_task_t;
+typedef struct wire_task wire_task_t;
 
 /** Initialize an XCoro coroutine thread.
  *
  * Give it an uninitialized but allocated space to work in and it will take care of it for this thread.
  */
-void xcoro_init(xcoro_t *xcoro);
+void wire_init(wire_t *wire);
 
 /** Run the coroutine threads. This function only returns when there are no
  * coroutines to run, you should have initialized one or more coroutines before
  * calling it.
  */
-void xcoro_run(void);
+void wire_run(void);
 
 /** Yield the CPU to the other coroutines. It will put the current running task
  * to the end of the ready list and will let all the other tasks get a slice of
  * the CPU too.
  */
-void xcoro_yield(void);
+void wire_yield(void);
 
 /** Get the current running task. Useful for when you need to give a task to some other XCoro function. */
-xcoro_task_t *xcoro_get_current_task(void);
+wire_task_t *wire_get_current_task(void);
 
 /** Checks if the current running task is the only one.
  *
  * This is mostly useful for a polling manager to see if it needs to sleep in the OS or to only check for new actions.
  */
-int xcoro_is_only_task(void);
+int wire_is_only_task(void);
 
 /** Resumes a suspended task. Puts the task at the end of the ready list.
  *
  * A side effect of its action is to put a task at the end of the ready list even if it is already in the running list.
  */
-void xcoro_resume(xcoro_task_t *task);
+void wire_resume(wire_task_t *task);
 
 /** Suspend the currently running task.
  */
-void xcoro_suspend(void);
+void wire_suspend(void);
 
 /** Initialize a task and puts it on the ready list.
  *
@@ -65,12 +65,12 @@ void xcoro_suspend(void);
  *
  * The task will be put at the end of the ready list and will be run later on,
  * the current task is not suspended or removed from the running list so if you
- * are in a long busy loop you should release the CPU with xcoro_yield().
+ * are in a long busy loop you should release the CPU with wire_yield().
  */
-xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size);
+wire_task_t *wire_task_init(wire_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size);
 
 /// @}
 
-#include "xcoro_private.h"
+#include "wire_private.h"
 
 #endif

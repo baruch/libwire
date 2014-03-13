@@ -5,7 +5,7 @@ recurser
 web
 channel
 waiters
-libxcoro.a
+libwire.a
 
 docs/
 built/

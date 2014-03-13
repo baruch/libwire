@@ -1,4 +1,4 @@
-#include "xcoro.h"
+#include "wire.h"
 #include "list.h"
 #include "valgrind_internal.h"
 
@@ -7,40 +7,40 @@
 #include <memory.h>
 #include <string.h>
 
-static xcoro_t *g_xcoro;
+static wire_t *g_wire;
 
-static xcoro_task_t *_xcoro_get_next_task(void)
+static wire_task_t *_wire_get_next_task(void)
 {
-	if (!list_empty(&g_xcoro->ready_list)) {
-		xcoro_task_t *task = list_entry(list_head(&g_xcoro->ready_list), xcoro_task_t, list);
+	if (!list_empty(&g_wire->ready_list)) {
+		wire_task_t *task = list_entry(list_head(&g_wire->ready_list), wire_task_t, list);
 		return task;
 	}
 
 	// If we have nowhere to switch to, switch to the original starting stack
 	// This will most likely result with us exiting from the application.
-	return &g_xcoro->sched_task;
+	return &g_wire->sched_task;
 }
 
-xcoro_task_t *xcoro_get_current_task(void)
+wire_task_t *wire_get_current_task(void)
 {
-	return g_xcoro->running_task;
+	return g_wire->running_task;
 }
 
-static void _xcoro_switch_to(xcoro_task_t *task)
+static void _wire_switch_to(wire_task_t *task)
 {
-	xcoro_task_t *from = xcoro_get_current_task();
-	g_xcoro->running_task = task;
+	wire_task_t *from = wire_get_current_task();
+	g_wire->running_task = task;
 
 	if (task != from)
 		coro_transfer(&from->ctx, &task->ctx);
 }
 
-static void xcoro_schedule(void)
+static void wire_schedule(void)
 {
-	_xcoro_switch_to(_xcoro_get_next_task());
+	_wire_switch_to(_wire_get_next_task());
 }
 
-static void _exec(xcoro_task_t *task)
+static void _exec(wire_task_t *task)
 {
     task->entry_point(task->arg);
 
@@ -52,34 +52,34 @@ static void _exec(xcoro_task_t *task)
 	VALGRIND_MAKE_MEM_UNDEFINED(task, sizeof(*task));
 
 	// Now switch to the next task
-	xcoro_schedule();
+	wire_schedule();
 
 	// We should never get back here!
 	abort();
 }
 
-void xcoro_init(xcoro_t *xcoro)
+void wire_init(wire_t *wire)
 {
-	g_xcoro = xcoro;
-	memset(g_xcoro, 0, sizeof(*g_xcoro));
+	g_wire = wire;
+	memset(g_wire, 0, sizeof(*g_wire));
 
-	list_head_init(&g_xcoro->ready_list);
-	list_head_init(&g_xcoro->suspend_list);
-	sprintf(g_xcoro->sched_task.name, "sched %p", xcoro);
+	list_head_init(&g_wire->ready_list);
+	list_head_init(&g_wire->suspend_list);
+	sprintf(g_wire->sched_task.name, "sched %p", wire);
 
 	// Initialize coro for the initial jump
-	coro_create(&g_xcoro->sched_task.ctx, 0, 0, 0, 0);
-	g_xcoro->running_task = &g_xcoro->sched_task;
+	coro_create(&g_wire->sched_task.ctx, 0, 0, 0, 0);
+	g_wire->running_task = &g_wire->sched_task;
 }
 
-void xcoro_run(void)
+void wire_run(void)
 {
-	while (!list_empty(&g_xcoro->ready_list)) {
-		xcoro_schedule();
+	while (!list_empty(&g_wire->ready_list)) {
+		wire_schedule();
 	}
 }
 
-xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size)
+wire_task_t *wire_task_init(wire_task_t *task, const char *name, void (*entry_point)(void *), void *task_data, void *stack, unsigned stack_size)
 {
 	memset(task, 0, sizeof(*task));
 
@@ -92,34 +92,34 @@ xcoro_task_t *xcoro_task_init(xcoro_task_t *task, const char *name, void (*entry
 	task->stack_size = stack_size;
 
 	coro_create(&task->ctx, (coro_func)_exec, task, stack, stack_size);
-	list_add_tail(&task->list, &g_xcoro->ready_list);
+	list_add_tail(&task->list, &g_wire->ready_list);
 	return task;
 }
 
-void xcoro_yield(void)
+void wire_yield(void)
 {
-	xcoro_task_t *this_task = xcoro_get_current_task();
+	wire_task_t *this_task = wire_get_current_task();
 
 	// Move to the end of the ready list
-	list_move_tail(&this_task->list, &g_xcoro->ready_list);
+	list_move_tail(&this_task->list, &g_wire->ready_list);
 
 	// Schedule the next one (could be the same task though!)
-	xcoro_schedule();
+	wire_schedule();
 }
 
-void xcoro_suspend(void)
+void wire_suspend(void)
 {
-	xcoro_task_t *this_task = xcoro_get_current_task();
-	list_move_tail(&this_task->list, &g_xcoro->suspend_list);
-	xcoro_schedule();
+	wire_task_t *this_task = wire_get_current_task();
+	list_move_tail(&this_task->list, &g_wire->suspend_list);
+	wire_schedule();
 }
 
-void xcoro_resume(xcoro_task_t *task)
+void wire_resume(wire_task_t *task)
 {
-	list_move_tail(&task->list, &g_xcoro->ready_list);
+	list_move_tail(&task->list, &g_wire->ready_list);
 }
 
-int xcoro_is_only_task(void)
+int wire_is_only_task(void)
 {
-	return list_is_single(&g_xcoro->ready_list);
+	return list_is_single(&g_wire->ready_list);
 }

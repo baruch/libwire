@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'xcoro', 'xcoro_fd', 'xcoro_task_pool', 'xcoro_stack', 'http_parser', 'xcoro_channel', 'coro'
+        'wire', 'wire_fd', 'wire_task_pool', 'wire_stack', 'http_parser', 'wire_channel', 'coro', 'wire_wait'
 ]
 
 test_srcs = {
@@ -94,7 +94,7 @@ all_targets = []
 lib_objs = []
 for source in lib_srcs:
         lib_objs += cc(source, src)
-lib = n.build('libxcoro.a', 'ar', lib_objs)
+lib = n.build('libwire.a', 'ar', lib_objs)
 all_targets += lib
 n.newline()
 
