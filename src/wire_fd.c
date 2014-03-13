@@ -178,7 +178,7 @@ int wire_fd_wait_msec(int msecs)
 
 void wire_fd_init(void)
 {
-	wire_task_init(&fd_task, "fd monitor", wire_fd_monitor, NULL, XCORO_STACK_ALLOC(2*4096));
+	wire_task_init(&fd_task, "fd monitor", wire_fd_monitor, NULL, WIRE_STACK_ALLOC(2*4096));
 
 	state.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (state.epoll_fd < 0) {

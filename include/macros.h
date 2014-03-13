@@ -1,5 +1,5 @@
-#ifndef XCORO_MACROS_H
-#define XCORO_MACROS_H
+#ifndef WIRE_MACROS_H
+#define WIRE_MACROS_H
 
 #include <stddef.h>
 

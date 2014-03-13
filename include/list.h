@@ -1,5 +1,5 @@
-#ifndef XCORO_LIST_H
-#define XCORO_LIST_H
+#ifndef WIRE_LIST_H
+#define WIRE_LIST_H
 
 #include "macros.h"
 

@@ -48,8 +48,8 @@ int main()
 	wire_init(&wire_main);
 	wire_fd_init();
 	wire_channel_init(&ch_io);
-	wire_task_init(&task_master, "mster", master, NULL, XCORO_STACK_ALLOC(4096));
-	wire_task_init(&task_io, "io", io, NULL, XCORO_STACK_ALLOC(4096));
+	wire_task_init(&task_master, "mster", master, NULL, WIRE_STACK_ALLOC(4096));
+	wire_task_init(&task_io, "io", io, NULL, WIRE_STACK_ALLOC(4096));
 	wire_run();
 	return 0;
 }

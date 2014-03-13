@@ -1,5 +1,5 @@
-#ifndef XCORO_FD_LIB_H
-#define XCORO_FD_LIB_H
+#ifndef WIRE_FD_LIB_H
+#define WIRE_FD_LIB_H
 
 /** @file
  * XCoro file descriptor poll loop.

@@ -29,8 +29,8 @@ int main()
 
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	wire_init(&wire_main);
-	wire_task_init(&task_hello, "hello", action, NULL, XCORO_STACK_ALLOC(4096));
-	wire_task_init(&task_bye, "bye", action, NULL, XCORO_STACK_ALLOC(4096));
+	wire_task_init(&task_hello, "hello", action, NULL, WIRE_STACK_ALLOC(4096));
+	wire_task_init(&task_bye, "bye", action, NULL, WIRE_STACK_ALLOC(4096));
 	wire_run();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 

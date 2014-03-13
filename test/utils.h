@@ -1,5 +1,5 @@
-#ifndef XCORO_TEST_UTILS_H
-#define XCORO_TEST_UTILS_H
+#ifndef WIRE_TEST_UTILS_H
+#define WIRE_TEST_UTILS_H
 
 void set_nonblock(int fd);
 void set_reuse(int fd);

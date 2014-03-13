@@ -1,5 +1,5 @@
-#ifndef XCORO_LIB_TASK_POOL_H
-#define XCORO_LIB_TASK_POOL_H
+#ifndef WIRE_LIB_TASK_POOL_H
+#define WIRE_LIB_TASK_POOL_H
 
 /** @file
  * XCoro task pool.

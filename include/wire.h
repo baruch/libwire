@@ -1,7 +1,7 @@
 /** @file
  */
-#ifndef XCORO_LIB_H
-#define XCORO_LIB_H
+#ifndef WIRE_LIB_H
+#define WIRE_LIB_H
 
 /** @addtogroup Core
  * XCoro main part. This includes the inner core of the XCoro library,

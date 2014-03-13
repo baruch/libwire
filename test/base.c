@@ -38,8 +38,8 @@ int main()
 {
 	wire_init(&wire_main);
 	wire_fd_init();
-	wire_task_init(&task_hello, "hello", hello, "world!", XCORO_STACK_ALLOC(4096));
-	wire_task_init(&task_bye, "bye", bye, "world!", XCORO_STACK_ALLOC(4096));
+	wire_task_init(&task_hello, "hello", hello, "world!", WIRE_STACK_ALLOC(4096));
+	wire_task_init(&task_bye, "bye", bye, "world!", WIRE_STACK_ALLOC(4096));
 	wire_run();
 	return 0;
 }

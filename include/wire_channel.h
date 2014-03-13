@@ -1,5 +1,5 @@
-#ifndef XCORO_LIB_CHANNEL_H
-#define XCORO_LIB_CHANNEL_H
+#ifndef WIRE_LIB_CHANNEL_H
+#define WIRE_LIB_CHANNEL_H
 /** @file
  */
 

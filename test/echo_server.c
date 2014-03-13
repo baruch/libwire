@@ -92,7 +92,7 @@ int main()
 	wire_init(&wire_main);
 	wire_fd_init();
 	wire_task_pool_init(&echo_pool, NULL, 6, 4096);
-	wire_task_init(&task_accept, "accept", task_accept_run, NULL, XCORO_STACK_ALLOC(4096));
+	wire_task_init(&task_accept, "accept", task_accept_run, NULL, WIRE_STACK_ALLOC(4096));
 	wire_run();
 	return 0;
 }
