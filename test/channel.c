@@ -5,9 +5,9 @@
 
 #include <stdio.h>
 
-static wire_t wire_main;
-static wire_task_t task_producer;
-static wire_task_t task_consumer;
+static wire_thread_t wire_main;
+static wire_t task_producer;
+static wire_t task_consumer;
 static wire_channel_t ch;
 
 static void producer(void *arg)
@@ -30,11 +30,11 @@ static void consumer(void *arg)
 
 int main()
 {
-	wire_init(&wire_main);
+	wire_thread_init(&wire_main);
 	wire_fd_init();
 	wire_channel_init(&ch);
-	wire_task_init(&task_producer, "producer", producer, NULL, WIRE_STACK_ALLOC(4096));
-	wire_task_init(&task_consumer, "consumer", consumer, NULL, WIRE_STACK_ALLOC(4096));
-	wire_run();
+	wire_init(&task_producer, "producer", producer, NULL, WIRE_STACK_ALLOC(4096));
+	wire_init(&task_consumer, "consumer", consumer, NULL, WIRE_STACK_ALLOC(4096));
+	wire_thread_run();
 	return 0;
 }

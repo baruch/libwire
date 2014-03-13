@@ -2,7 +2,7 @@
 #define WIRE_FD_LIB_H
 
 /** @file
- * XCoro file descriptor poll loop.
+ * libwire file descriptor poll loop.
  */
 
 /** @defgroup FDPoller FD poller
@@ -15,7 +15,7 @@
  */
 /// @{
 
-/** Initialize the XCoro file descriptor poller. This is currently global per app and should become local to an XCoro thread.
+/** Initialize the libwire file descriptor poller. This is currently global per app and should become local to a wire thread.
  */
 void wire_fd_init(void);
 

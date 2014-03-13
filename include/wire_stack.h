@@ -2,7 +2,7 @@
 #define WIRE_STACK_LIB_H
 
 /** @file
- * XCoro stack allocator.
+ * libwire stack allocator.
  */
 
 /** @defgroup Stack Stack Allocator
@@ -25,8 +25,8 @@
  */
 void *wire_stack_alloc(unsigned stack_size);
 
-/** A convenience method to provide as an argument to wire_task_init(). This is to be used as:
- * wire_task_init(&task, "name", entry_point, arg, WIRE_STACK_ALLOC(4096));
+/** A convenience method to provide as an argument to wire_init(). This is to be used as:
+ * wire_init(&task, "name", entry_point, arg, WIRE_STACK_ALLOC(4096));
  */
 #define WIRE_STACK_ALLOC(size) wire_stack_alloc(size), size
 

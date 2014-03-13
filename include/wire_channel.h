@@ -62,7 +62,7 @@ int wire_channel_recv_nonblock(wire_channel_t *c, void **msg);
 
 struct wire_channel {
 	struct list_head pending;
-	wire_task_t *task;
+	wire_t *wire;
 };
 
 #endif

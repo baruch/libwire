@@ -3,26 +3,26 @@
 
 struct wire_msg {
 	struct list_head list;
-	wire_task_t *caller;
+	wire_t *caller;
 	void *msg;
 };
 
 void wire_channel_init(wire_channel_t *c)
 {
 	list_head_init(&c->pending);
-	c->task = NULL;
+	c->wire = NULL;
 }
 
 void wire_channel_send(wire_channel_t *c, void *msg)
 {
 	struct wire_msg xmsg;
 
-	xmsg.caller = wire_get_current_task();
+	xmsg.caller = wire_get_current();
 	xmsg.msg = msg;
 	list_add_tail(&xmsg.list, &c->pending);
 
-	if (c->task)
-		wire_resume(c->task);
+	if (c->wire)
+		wire_resume(c->wire);
 
 	do {
 		wire_suspend();
@@ -33,9 +33,9 @@ int wire_channel_recv(wire_channel_t *c, void **msg)
 {
 	while (wire_channel_recv_nonblock(c, msg) != 0)
 	{
-		c->task = wire_get_current_task();
+		c->wire = wire_get_current();
 		wire_suspend();
-		c->task = NULL;
+		c->wire = NULL;
 	}
 
 	return 0;

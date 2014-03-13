@@ -16,9 +16,9 @@
 
 #include "utils.h"
 
-static wire_t wire_main;
-static wire_task_t task_accept;
-static wire_task_pool_t web_pool;
+static wire_thread_t wire_thread_main;
+static wire_t wire_accept;
+static wire_pool_t web_pool;
 
 struct web_data {
 	int fd;
@@ -122,7 +122,7 @@ static const struct http_parser_settings parser_settings = {
 	.on_body = on_body,
 };
 
-static void task_web_run(void *arg)
+static void web_run(void *arg)
 {
 	struct web_data d = {
 		.fd = (long int)arg,
@@ -180,7 +180,7 @@ static void task_web_run(void *arg)
 	close(d.fd);
 }
 
-static void task_accept_run(void *arg)
+static void accept_run(void *arg)
 {
 	UNUSED(arg);
 	int fd = socket_setup(9090);
@@ -198,7 +198,7 @@ static void task_accept_run(void *arg)
 			printf("New connection: %d\n", new_fd);
 			char name[32];
 			snprintf(name, sizeof(name), "web %d", new_fd);
-			wire_task_t *task = wire_task_pool_alloc(&web_pool, name, task_web_run, (void*)(long int)new_fd);
+			wire_t *task = wire_pool_alloc(&web_pool, name, web_run, (void*)(long int)new_fd);
 			if (!task) {
 				printf("Web server is busy, sorry\n");
 				close(new_fd);
@@ -214,10 +214,10 @@ static void task_accept_run(void *arg)
 
 int main()
 {
-	wire_init(&wire_main);
+	wire_thread_init(&wire_thread_main);
 	wire_fd_init();
-	wire_task_pool_init(&web_pool, NULL, 16, 16*1024);
-	wire_task_init(&task_accept, "accept", task_accept_run, NULL, WIRE_STACK_ALLOC(4096));
-	wire_run();
+	wire_pool_init(&web_pool, NULL, 16, 16*1024);
+	wire_init(&wire_accept, "accept", accept_run, NULL, WIRE_STACK_ALLOC(4096));
+	wire_thread_run();
 	return 0;
 }

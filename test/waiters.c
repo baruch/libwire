@@ -5,9 +5,9 @@
 
 #include <stdio.h>
 
-static wire_t wire_main;
-static wire_task_t task_master;
-static wire_task_t task_io;
+static wire_thread_t wire_main;
+static wire_t task_master;
+static wire_t task_io;
 static wire_channel_t ch_io;
 
 static void master(void *arg)
@@ -45,11 +45,11 @@ static void io(void *arg)
 
 int main()
 {
-	wire_init(&wire_main);
+	wire_thread_init(&wire_main);
 	wire_fd_init();
 	wire_channel_init(&ch_io);
-	wire_task_init(&task_master, "mster", master, NULL, WIRE_STACK_ALLOC(4096));
-	wire_task_init(&task_io, "io", io, NULL, WIRE_STACK_ALLOC(4096));
-	wire_run();
+	wire_init(&task_master, "mster", master, NULL, WIRE_STACK_ALLOC(4096));
+	wire_init(&task_io, "io", io, NULL, WIRE_STACK_ALLOC(4096));
+	wire_thread_run();
 	return 0;
 }

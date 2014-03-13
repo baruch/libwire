@@ -3,7 +3,7 @@
 #include "list.h"
 #include "coro.h"
 
-struct wire_task {
+struct wire {
 	coro_context ctx;
 	char name[32];
 	void (*entry_point)(void *);
@@ -13,9 +13,9 @@ struct wire_task {
 	struct list_head list;
 };
 
-struct wire {
-	wire_task_t sched_task;
+struct wire_thread {
+	wire_t sched_wire;
 	struct list_head ready_list;
 	struct list_head suspend_list;
-	wire_task_t *running_task;
+	wire_t *running_wire;
 };

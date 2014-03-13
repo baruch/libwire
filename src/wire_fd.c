@@ -17,12 +17,12 @@ struct fd_state {
 
 static struct fd_state state;
 
-static wire_task_t fd_task;
+static wire_t fd_wire;
 
 static void wire_fd_action_added(void)
 {
 	if (state.count == 0) {
-		wire_resume(&fd_task);
+		wire_resume(&fd_wire);
 	}
 	state.count++;
 }
@@ -38,7 +38,7 @@ static int wire_fd_one_shot_action(int fd, uint32_t event_type)
 	struct epoll_event event;
 
 	event.events = event_type | EPOLLONESHOT;
-	event.data.ptr = wire_get_current_task();
+	event.data.ptr = wire_get_current();
 
 	ret = epoll_ctl(state.epoll_fd, EPOLL_CTL_ADD, fd, &event);
 	if (ret < 0)
@@ -62,18 +62,18 @@ static void wire_fd_monitor(void *arg)
 			wire_suspend();
 
 		// Only block if we are the only thing that needs to happen
-		int timeout = wire_is_only_task() ? -1 : 0;
+		int timeout = wire_is_only_one() ? -1 : 0;
 		struct epoll_event events[2048/sizeof(struct epoll_event)]; // Don't use more than 2K of stack
 
 		int event_count = epoll_wait(state.epoll_fd, events, ARRAY_SIZE(events), timeout);
 		int i;
 
 		for (i = 0; i < event_count; i++) {
-			wire_task_t *task = events[i].data.ptr;
-			wire_resume(task);
+			wire_t *wire = events[i].data.ptr;
+			wire_resume(wire);
 		}
 
-		// Let the just resumed tasks and other ready tasks get their time
+		// Let the just resumed wires and other ready wires get their time
 		wire_yield();
 	}
 
@@ -109,7 +109,7 @@ static int wire_fd_mode_switch(wire_fd_state_t *fd_state, wire_fd_mode_e end_mod
 	uint32_t event_code = end_mode == FD_MODE_READ ? EPOLLIN : EPOLLOUT;
 	struct epoll_event event = {
 		.events = event_code,
-		.data.ptr = wire_get_current_task()
+		.data.ptr = wire_get_current()
 	};
 	int ret = epoll_ctl(state.epoll_fd, op, fd_state->fd, &event);
 	if (ret >= 0) {
@@ -178,7 +178,7 @@ int wire_fd_wait_msec(int msecs)
 
 void wire_fd_init(void)
 {
-	wire_task_init(&fd_task, "fd monitor", wire_fd_monitor, NULL, WIRE_STACK_ALLOC(2*4096));
+	wire_init(&fd_wire, "fd monitor", wire_fd_monitor, NULL, WIRE_STACK_ALLOC(2*4096));
 
 	state.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (state.epoll_fd < 0) {

@@ -9,14 +9,14 @@
 struct wrapper_args {
 	void (*entry_point)(void *);
 	void *arg;
-	wire_task_pool_entry_t *entry;
-	wire_task_pool_t *pool;
+	wire_pool_entry_t *entry;
+	wire_pool_t *pool;
 };
 
-int wire_task_pool_init(wire_task_pool_t *pool, wire_task_pool_entry_t *entries, unsigned size, unsigned stack_size)
+int wire_pool_init(wire_pool_t *pool, wire_pool_entry_t *entries, unsigned size, unsigned stack_size)
 {
 	if (entries == NULL)
-		entries = calloc(size, sizeof(wire_task_pool_entry_t));
+		entries = calloc(size, sizeof(wire_pool_entry_t));
 
 	pool->size = size;
 	pool->num_inited = 0;
@@ -31,20 +31,20 @@ static void wrapper_entry_point(void *arg)
 	struct wrapper_args *args = arg;
 	void (*entry_point)(void*) = args->entry_point;
 	arg = args->arg;
-	wire_task_pool_entry_t *entry = args->entry;
-	wire_task_pool_t *pool = args->pool;
+	wire_pool_entry_t *entry = args->entry;
+	wire_pool_t *pool = args->pool;
 
 	entry_point(arg);
 
 	list_add_head(&entry->list, &pool->free_list);
 }
 
-wire_task_t *wire_task_pool_alloc(wire_task_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
+wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
 {
-	wire_task_pool_entry_t *entry;
+	wire_pool_entry_t *entry;
 
 	if (!list_empty(&pool->free_list)) {
-		entry = list_entry(list_head(&pool->free_list), wire_task_pool_entry_t, list);
+		entry = list_entry(list_head(&pool->free_list), wire_pool_entry_t, list);
 		list_del(&entry->list);
 	} else if (pool->num_inited < pool->size) {
 		// Not everything was initialized yet, initialize another one
@@ -72,6 +72,6 @@ wire_task_t *wire_task_pool_alloc(wire_task_pool_t *pool, const char *name, void
 	args->entry = entry;
 	args->pool = pool;
 
-	wire_task_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
+	wire_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
 	return &entry->task;
 }

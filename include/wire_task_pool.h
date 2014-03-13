@@ -2,7 +2,7 @@
 #define WIRE_LIB_TASK_POOL_H
 
 /** @file
- * XCoro task pool.
+ * libwire pool.
  */
 
 #include "wire.h"
@@ -15,21 +15,21 @@
  */
 /// @{
 
-struct wire_task_pool_entry {
+struct wire_gpool_entry {
 	struct list_head list;
-	wire_task_t task;
+	wire_t task;
 	void *stack;
 };
-typedef struct wire_task_pool_entry wire_task_pool_entry_t;
+typedef struct wire_gpool_entry wire_pool_entry_t;
 
-struct wire_task_pool {
-	struct wire_task_pool_entry *entries;
+struct wire_gpool {
+	struct wire_gpool_entry *entries;
 	struct list_head free_list;
 	unsigned size;
 	unsigned num_inited;
 	unsigned stack_size;
 };
-typedef struct wire_task_pool wire_task_pool_t;
+typedef struct wire_gpool wire_pool_t;
 
 /** Initialize a task pool. Sets the pool structure with the entries array of size size and will allocate stacks of size stack_size.
  *
@@ -40,7 +40,7 @@ typedef struct wire_task_pool wire_task_pool_t;
  * @return 0 for ok,<br>
  *         -1 when an error occurred and the pool cannot be initialized.
  */
-int wire_task_pool_init(wire_task_pool_t *pool, wire_task_pool_entry_t *entries, unsigned size, unsigned stack_size);
+int wire_pool_init(wire_pool_t *pool, wire_pool_entry_t *entries, unsigned size, unsigned stack_size);
 
 /** Allocate a new task from the task pool. Gives the task a name and a
  * function to call and an argument. When the task finished it will
@@ -53,7 +53,7 @@ int wire_task_pool_init(wire_task_pool_t *pool, wire_task_pool_entry_t *entries,
  * @return An allocated and initialized task. If there is no entry available in the
  * pool it will return NULL.
  */
-wire_task_t *wire_task_pool_alloc(wire_task_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg);
+wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg);
 
 /// @}
 

@@ -14,9 +14,9 @@
 
 #include "utils.h"
 
-static wire_t wire_main;
-static wire_task_t task_accept;
-static wire_task_pool_t echo_pool;
+static wire_thread_t wire_main;
+static wire_t task_accept;
+static wire_pool_t echo_pool;
 
 static void task_echo_run(void *arg)
 {
@@ -73,7 +73,7 @@ static void task_accept_run(void *arg)
 		int new_fd = accept(fd, NULL, NULL);
 		if (new_fd >= 0) {
 			printf("New connection: %d\n", new_fd);
-			wire_task_t *task = wire_task_pool_alloc(&echo_pool, "echo", task_echo_run, (void*)(long int)new_fd);
+			wire_t *task = wire_pool_alloc(&echo_pool, "echo", task_echo_run, (void*)(long int)new_fd);
 			if (!task) {
 				printf("Echo is busy, sorry\n");
 				close(new_fd);
@@ -89,10 +89,10 @@ static void task_accept_run(void *arg)
 
 int main()
 {
-	wire_init(&wire_main);
+	wire_thread_init(&wire_main);
 	wire_fd_init();
-	wire_task_pool_init(&echo_pool, NULL, 6, 4096);
-	wire_task_init(&task_accept, "accept", task_accept_run, NULL, WIRE_STACK_ALLOC(4096));
-	wire_run();
+	wire_pool_init(&echo_pool, NULL, 6, 4096);
+	wire_init(&task_accept, "accept", task_accept_run, NULL, WIRE_STACK_ALLOC(4096));
+	wire_thread_run();
 	return 0;
 }
