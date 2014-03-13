@@ -28,9 +28,7 @@ This stems mostly from the user of epoll, timerfd and signalfd.
 This can be replaced probably with libev but will mandate some change to the
 API.
 
-The coroutine core was taken from the lthreads library which is x86-32 and
-x86-64 only but can be easily replaced with libcoro which has more support
-across architectures.
+The coroutine core uses libcoro to provide support for multiple architectures.
 
 Author
 ------
