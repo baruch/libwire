@@ -1,0 +1,79 @@
+#ifndef WIRE_LIB_WAIT_H
+#define WIRE_LIB_WAIT_H
+/** @file
+ */
+
+#include "list.h"
+#include "wire.h"
+
+/** @addtogroup Wait Facility
+ * A Wait facility enables a wire to wait for different events, be they fd based or timers.
+ */
+/// @{
+
+typedef struct wire_wait_list wire_wait_list_t;
+typedef struct wire_wait wire_wait_t;
+
+/** Initialize a wire waiting list.
+ * @param[in] wl The wait list to initialize.
+ */
+void wire_wait_list_init(wire_wait_list_t *wl);
+
+/** Initialize a wait before it can be used.
+ *
+ * @param[in] w The wait to initialize
+ */
+void wire_wait_init(wire_wait_t *w);
+
+/** Chain another waiter to the list.
+ *
+ * @param[in] wl The waiter list to chain onto.
+ * @param[in] w The waiter to chain into the list of waiters.
+ */
+void wire_wait_chain(wire_wait_list_t *wl, wire_wait_t *w);
+
+/** Unchain a waiter from the list. This needs to be used when a waiter is no
+ * longer needed on a list or needs to be moved to another list.
+ * @param[in] w The waiter to unchain.
+ */
+void wire_wait_unchain(wire_wait_t *w);
+
+/** Wait for at least one of the chained wait reasons to wake us up.
+ *
+ * @param[in] w Wire list to wait on.
+ * @return First wait reason that got woken, there may be more than one. The
+ * caller should check for all of them in the linked list, can optimize to start at the returned item.
+ */
+wire_wait_t *wire_list_wait(wire_wait_list_t *wl);
+
+/** Wake a waiter. This will wake a waiter if it isn't already triggered.
+ *
+ * @param[in] w Wait facility to wakeup.
+ */
+void wire_wait_resume(wire_wait_t *w);
+
+/** Reset a waiter to wait again. This is used to reset a triggered or stopped waiter to be marked again as waiting.
+ * @param[in] w Wait facility to reset.
+ */
+void wire_wait_reset(wire_wait_t *w);
+
+/** Cancel a waiter, a resume will no longer wake up this wire.
+ * @param[in] w Waiter to cancel.
+ */
+void wire_wait_stop(wire_wait_t *w);
+
+/// @}
+
+struct wire_wait_list {
+	struct list_head head;
+	wire_t *wire;
+};
+
+struct wire_wait {
+	struct list_head list;
+	wire_wait_list_t *start;
+	unsigned waiting : 1;
+	unsigned triggered : 1;
+};
+
+#endif

@@ -2,6 +2,7 @@
 #include "wire_fd.h"
 #include "wire_stack.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -32,26 +33,6 @@ static void wire_fd_action_removed(void)
 	state.count--;
 }
 
-static int wire_fd_one_shot_action(int fd, uint32_t event_type)
-{
-	int ret;
-	struct epoll_event event;
-
-	event.events = event_type | EPOLLONESHOT;
-	event.data.ptr = wire_get_current();
-
-	ret = epoll_ctl(state.epoll_fd, EPOLL_CTL_ADD, fd, &event);
-	if (ret < 0)
-		return -1;
-
-	wire_fd_action_added();
-	wire_suspend();
-	wire_fd_action_removed();
-
-	ret = epoll_ctl(state.epoll_fd, EPOLL_CTL_DEL, fd, &event);
-	return 0;
-}
-
 static void wire_fd_monitor(void *arg)
 {
 	UNUSED(arg);
@@ -69,8 +50,8 @@ static void wire_fd_monitor(void *arg)
 		int i;
 
 		for (i = 0; i < event_count; i++) {
-			wire_t *wire = events[i].data.ptr;
-			wire_resume(wire);
+			wire_wait_t *wire = events[i].data.ptr;
+			wire_wait_resume(wire);
 		}
 
 		// Let the just resumed wires and other ready wires get their time
@@ -80,15 +61,11 @@ static void wire_fd_monitor(void *arg)
 	printf("fd monitor ends! (unexpected)\n");
 }
 
-int wire_fd_wait_read(int fd)
-{
-	return wire_fd_one_shot_action(fd, EPOLLIN);
-}
-
 void wire_fd_mode_init(wire_fd_state_t *st, int fd)
 {
 	st->fd = fd;
 	st->state = FD_MODE_NONE;
+	wire_wait_init(&st->wait);
 }
 
 static int wire_fd_mode_switch(wire_fd_state_t *fd_state, wire_fd_mode_e end_mode)
@@ -109,7 +86,7 @@ static int wire_fd_mode_switch(wire_fd_state_t *fd_state, wire_fd_mode_e end_mod
 	uint32_t event_code = end_mode == FD_MODE_READ ? EPOLLIN : EPOLLOUT;
 	struct epoll_event event = {
 		.events = event_code,
-		.data.ptr = wire_get_current()
+		.data.ptr = &fd_state->wait
 	};
 	int ret = epoll_ctl(state.epoll_fd, op, fd_state->fd, &event);
 	if (ret >= 0) {
@@ -139,8 +116,14 @@ int wire_fd_mode_none(wire_fd_state_t *fd_state)
 
 void wire_fd_wait(wire_fd_state_t *fd_state)
 {
-	if (fd_state->state != FD_MODE_NONE)
-		wire_suspend();
+	if (fd_state->state == FD_MODE_NONE)
+		return;
+
+	wire_wait_list_t wait_list;
+
+	wire_wait_list_init(&wait_list);
+	wire_wait_chain(&wait_list, &fd_state->wait);
+	wire_list_wait(&wait_list);
 }
 
 int wire_fd_wait_msec(int msecs)
@@ -157,10 +140,21 @@ int wire_fd_wait_msec(int msecs)
 
 	int ret = timerfd_settime(fd, 0, &timer, NULL);
 
-	while (ret >= 0 && wire_fd_wait_read(fd) >= 0) {
+	wire_wait_list_t wait_list;
+	wire_wait_list_init(&wait_list);
+
+	wire_fd_state_t fd_state;
+	wire_fd_mode_init(&fd_state, fd);
+	wire_fd_mode_read(&fd_state);
+
+	while (1) {
+		wire_fd_wait(&fd_state);
+
 		uint64_t timer_val = 0;
 		ret = read(fd, &timer_val, sizeof(timer_val));
 		if (ret < (int)sizeof(timer_val)) {
+			if (errno == EAGAIN)
+				continue;
 			perror("Error reading from timerfd");
 			ret = -1;
 			break;
@@ -172,8 +166,14 @@ int wire_fd_wait_msec(int msecs)
 		}
 	}
 
+	wire_fd_mode_none(&fd_state);
 	close(fd);
 	return ret;
+}
+
+void wire_fd_wait_list_chain(wire_wait_list_t *wl, wire_fd_state_t *fd_state)
+{
+	wire_wait_chain(wl, &fd_state->wait);
 }
 
 void wire_fd_init(void)
