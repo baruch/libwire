@@ -22,7 +22,7 @@ static void consumer(void *arg)
 {
 	UNUSED(arg);
 	void *msg;
-	wire_channel_recv(&ch, &msg);
+	wire_channel_recv_block(&ch, &msg);
 
 	int val = *(int *)msg;
 	printf("Consumer got %d\n", val);

@@ -21,7 +21,7 @@ static void master(void *arg)
 		wire_channel_send(&ch_io, &ch_reply);
 
 		void *val_void;
-		wire_channel_recv(&ch_reply, &val_void);
+		wire_channel_recv_block(&ch_reply, &val_void);
 
 		val = *(int*)val_void;
 		printf("Got %d\n", val);
@@ -34,7 +34,7 @@ static void io(void *arg)
 	int val = 1;
 	while (1) {
 		wire_channel_t *ch_reply;
-		wire_channel_recv(&ch_io, (void**)&ch_reply);
+		wire_channel_recv_block(&ch_io, (void**)&ch_reply);
 
 		wire_fd_wait_msec(1000);
 

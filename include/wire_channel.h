@@ -5,6 +5,7 @@
 
 #include "list.h"
 #include "wire.h"
+#include "wire_wait.h"
 
 /** @addtogroup Channels
  * A channel is a communication medium. The only channel implementation for now
@@ -16,6 +17,7 @@
 /// @{
 
 typedef struct wire_channel wire_channel_t;
+typedef struct wire_channel_receiver wire_channel_receiver_t;
 
 /** Initialize a channel before it can be used.
  *
@@ -48,7 +50,7 @@ void wire_channel_send(wire_channel_t *c, void *msg);
  * @param[in] msg Message received
  * @return 0 if a message is received, -1 on error
  */
-int wire_channel_recv(wire_channel_t *c, void **msg);
+int wire_channel_recv_block(wire_channel_t *c, void **msg);
 
 /** Receive a message from the channel, do not block if there is nothing on the channel.
  *
@@ -58,11 +60,25 @@ int wire_channel_recv(wire_channel_t *c, void **msg);
  */
 int wire_channel_recv_nonblock(wire_channel_t *c, void **msg);
 
+/** Set the wire to wait on a channel, it will be woken up when there is
+ * something to receive on the channel. It is then expected that the receiver
+ * will call wire_channel_recv_nonblock().
+ *
+ * @param[in] c Channel to wait for.
+ * @param[in] receiver Channel receiver to use when waiting.
+ */
+void wire_channel_recv_wait(wire_channel_t *c, wire_channel_receiver_t *receiver, wire_wait_t *wait);
+
 /// @}
 
 struct wire_channel {
 	struct list_head pending_send;
 	struct list_head pending_recv;
+};
+
+struct wire_channel_receiver {
+	struct list_head list;
+	wire_wait_t *wait;
 };
 
 #endif
