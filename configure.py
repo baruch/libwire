@@ -15,7 +15,7 @@ test_srcs = {
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
-          '-Wmissing-prototypes', '-Winit-self', '-pipe']
+          '-Wmissing-prototypes', '-Winit-self', '-pipe', '-DCORO_STACKALLOC=0']
 ldflags = ['-lrt']
 
 import os, os.path
