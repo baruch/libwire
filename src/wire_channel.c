@@ -7,6 +7,12 @@ struct wire_msg {
 	void *msg;
 };
 
+static void wire_channel_receiver_init(wire_channel_receiver_t *r)
+{
+	list_head_init(&r->list);
+	r->wait = NULL;
+}
+
 void wire_channel_init(wire_channel_t *c)
 {
 	list_head_init(&c->pending_send);
@@ -42,10 +48,14 @@ int wire_channel_recv_block(wire_channel_t *c, void **msg)
 	while (wire_channel_recv_nonblock(c, msg) != 0)
 	{
 		wire_channel_receiver_t rcvr;
+		wire_channel_receiver_init(&rcvr);
+
 		wire_wait_list_t wait_list;
-		wire_wait_t wait;
 		wire_wait_list_init(&wait_list);
+
+		wire_wait_t wait;
 		wire_wait_init(&wait);
+
 		wire_wait_chain(&wait_list, &wait);
 
 		wire_channel_recv_wait(c, &rcvr, &wait);
