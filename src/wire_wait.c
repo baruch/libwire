@@ -4,6 +4,7 @@
 void wire_wait_list_init(wire_wait_list_t *wl)
 {
 	list_head_init(&wl->head);
+	wl->wire = wire_get_current();
 }
 
 void wire_wait_init(wire_wait_t *w)
@@ -31,8 +32,6 @@ void wire_wait_unchain(wire_wait_t *w)
 wire_wait_t *wire_list_wait(wire_wait_list_t *wl)
 {
 	struct list_head *cur;
-
-	wl->wire = wire_get_current();
 
 	while (1) {
 		wire_suspend();
