@@ -126,7 +126,9 @@ static void submit_action(struct wire_io *wio, struct wire_io_act *act)
 
 static void return_action(struct wire_io *wio, struct wire_io_act *act)
 {
-	write(wio->response_send_fd, &act, sizeof(act));
+	ssize_t ret = write(wio->response_send_fd, &act, sizeof(act));
+	if (ret != sizeof(act))
+		printf("wire_io: returning action failed in write, ret=%d errno=%d:  %m\n", (int)ret, errno);
 }
 
 /* Wait with an unlocked mutex on the condition until we are woken up, when we
