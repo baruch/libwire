@@ -34,13 +34,13 @@ wire_wait_t *wire_list_wait(wire_wait_list_t *wl)
 	struct list_head *cur;
 
 	while (1) {
-		wire_suspend();
-
 		for (cur = wl->head.next; cur != &wl->head; cur = cur->next) {
 			wire_wait_t *cur_w = list_entry(cur, wire_wait_t, list);
 			if (cur_w->triggered)
 				return cur_w;
 		}
+
+		wire_suspend();
 	}
 }
 
