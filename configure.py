@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'wire', 'wire_fd', 'wire_pool', 'wire_stack', 'http_parser', 'wire_channel', 'wire_wait', 'coro'
+        'wire', 'wire_fd', 'wire_pool', 'wire_stack', 'wire_io', 'http_parser', 'wire_channel', 'wire_wait', 'coro'
 ]
 
 test_srcs = {
