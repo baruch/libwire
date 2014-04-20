@@ -20,6 +20,7 @@
  * @param num_threads the number of threads to open to handle the async io requests.
  */
 void wire_io_init(int num_threads);
+void wire_io_shutdown(void);
 
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);

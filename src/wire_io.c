@@ -17,6 +17,8 @@ struct wire_io {
 	struct list_head list;
 	int response_send_fd;
 	int response_recv_fd;
+	int shutdown;
+	int num_threads;
 	wire_t wire;
 } wire_io;
 
@@ -139,15 +141,19 @@ static struct wire_io_act *get_action(struct wire_io *wio)
 {
 	pthread_mutex_lock(&wio->mutex);
 
-	while (list_empty(&wio->list))
+	while (list_empty(&wio->list) && !wio->shutdown)
 		pthread_cond_wait(&wio->cond, &wio->mutex);
 
 	struct list_head *head = list_head(&wio->list);
-	list_del(head);
+	struct wire_io_act *entry = NULL;
+	if (head) {
+		list_del(head);
+		entry = list_entry(head, struct wire_io_act, elem);
+	}
 
 	pthread_mutex_unlock(&wio->mutex);
 
-	return list_entry(head, struct wire_io_act, elem);
+	return entry;
 }
 
 #define RUN_RET(_name_, run) act->_name_.ret = run; act->_name_.verrno = errno
@@ -189,8 +195,13 @@ static void *wire_io_thread(void *arg)
 
 	while (1) {
 		struct wire_io_act *act = get_action(wio);
-		if (!act)
+		if (!act) {
+			if (wio->shutdown) {
+				return_action(wio, NULL);
+				break;
+			}
 			continue;
+		}
 
 		perform_action(act);
 		return_action(wio, act);
@@ -213,7 +224,14 @@ static void wire_io_response(void *arg)
 		ssize_t ret = read(wio->response_recv_fd, &act, sizeof(act));
 		if (ret == sizeof(act)) {
 			printf("Got back act %p\n", act);
-			wire_wait_resume(act->wait);
+			if (act)
+				wire_wait_resume(act->wait);
+			else {
+				// Thread shutdown
+				wio->num_threads--;
+				if (wio->num_threads == 0)
+					break;
+			}
 		} else if (ret < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				wire_fd_wait(&fd_state); // Wait for the response, only if we would block
@@ -226,10 +244,18 @@ static void wire_io_response(void *arg)
 			abort();
 		}
 	}
+
+	wire_fd_mode_none(&fd_state);
+	close(wio->response_recv_fd);
+	close(wio->response_send_fd);
+	pthread_cond_destroy(&wio->cond);
+	pthread_mutex_destroy(&wio->mutex);
 }
 
 void wire_io_init(int num_threads)
 {
+	wire_io.num_threads = num_threads;
+	wire_io.shutdown = 0;
 	list_head_init(&wire_io.list);
 	pthread_mutex_init(&wire_io.mutex, NULL);
 	pthread_cond_init(&wire_io.cond, NULL);
@@ -253,8 +279,22 @@ void wire_io_init(int num_threads)
 	}
 }
 
+void wire_io_shutdown(void)
+{
+	wire_io.shutdown = 1;
+	pthread_cond_broadcast(&wire_io.cond);
+}
+
 #define DEF(_type_) struct wire_io_act act; act.type = _type_
-#define SEND_RET(_name_) submit_action(&wire_io, &act); if (act._name_.ret < 0) errno = act._name_.verrno; return act._name_.ret
+#define SEND_RET(_name_) \
+	if (wire_io.shutdown) {\
+		errno = EINVAL; \
+		return -1; \
+	} \
+	submit_action(&wire_io, &act); \
+	if (act._name_.ret < 0) \
+		errno = act._name_.verrno; \
+	return act._name_.ret
 
 int wio_open(const char *pathname, int flags, mode_t mode)
 {
