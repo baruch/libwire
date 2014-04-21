@@ -119,13 +119,16 @@ static void submit_action(struct wire_io *wio, struct wire_io_act *act)
 	// Add the action to the list
 	pthread_mutex_lock(&wio->mutex);
 	list_add_tail(&act->elem, &wio->list);
-	pthread_cond_signal(&wio->cond);
 	pthread_mutex_unlock(&wio->mutex);
+
+	// Wake at least one worker thread to get this action done
+	pthread_cond_signal(&wio->cond);
 
 	// Wait for the action to complete
 	wire_list_wait(&wait_list);
 }
 
+/* Return the performed action back to the caller */
 static void return_action(struct wire_io *wio, struct wire_io_act *act)
 {
 	ssize_t ret = write(wio->response_send_fd, &act, sizeof(act));
@@ -136,7 +139,8 @@ static void return_action(struct wire_io *wio, struct wire_io_act *act)
 /* Wait with an unlocked mutex on the condition until we are woken up, when we
  * are woken up the mutex is retaken and we can manipulate the list as we wish
  * and must ensure to unlock it and do it as fast as possible to reduce
- * contention. */
+ * contention.
+ */
 static struct wire_io_act *get_action(struct wire_io *wio)
 {
 	pthread_mutex_lock(&wio->mutex);
@@ -156,10 +160,11 @@ static struct wire_io_act *get_action(struct wire_io *wio)
 	return entry;
 }
 
-#define RUN_RET(_name_, run) act->_name_.ret = run; act->_name_.verrno = errno
+/* Perform the actions, add here any blocking operation needed */
 static void perform_action(struct wire_io_act *act)
 {
-	printf("performing action %p\n", act);
+#define RUN_RET(_name_, run) act->_name_.ret = run; act->_name_.verrno = errno
+	//DEBUG: printf("performing action %p\n", act);
 	switch (act->type) {
 		case IO_OPEN:
 			RUN_RET(open, open(act->open.pathname, act->open.flags, act->open.mode));
@@ -186,9 +191,12 @@ static void perform_action(struct wire_io_act *act)
 			RUN_RET(fsync, fsync(act->fsync.fd));
 			break;
 	}
-	printf("Done performing act %p\n", act);
+	//DEBUG: printf("Done performing act %p\n", act);
+#undef RUN_RET
 }
 
+/* The async thread implementation that waits for async actions to perform and runs them.
+ */
 static void *wire_io_thread(void *arg)
 {
 	struct wire_io *wio = arg;
@@ -209,6 +217,9 @@ static void *wire_io_thread(void *arg)
 	return NULL;
 }
 
+/* Take care of the response from the worker threads, gets the action that was
+ * performed and resumes the caller to take care of the response.
+ */
 static void wire_io_response(void *arg)
 {
 	struct wire_io *wio = arg;
@@ -223,7 +234,7 @@ static void wire_io_response(void *arg)
 		struct wire_io_act *act = NULL;
 		ssize_t ret = read(wio->response_recv_fd, &act, sizeof(act));
 		if (ret == sizeof(act)) {
-			printf("Got back act %p\n", act);
+			//DEBUG: printf("Got back act %p\n", act);
 			if (act)
 				wire_wait_resume(act->wait);
 			else {
