@@ -39,7 +39,7 @@ void *wire_stack_alloc(unsigned stack_size)
 	int ret = mprotect(ptr, stack_size, PROT_READ|PROT_WRITE);
 	if (ret < 0) {
 		perror("failed to mprotect stack for read/write");
-		return NULL;
+		abort();
 	}
 
 	base += stack_size + page_size;
