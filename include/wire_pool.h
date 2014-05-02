@@ -6,6 +6,7 @@
  */
 
 #include "wire.h"
+#include "wire_channel.h"
 
 /** @defgroup TaskPool Task Pool
  * A task pool is used to allow a large number of tasks to be made available
@@ -28,6 +29,8 @@ struct wire_gpool {
 	unsigned size;
 	unsigned num_inited;
 	unsigned stack_size;
+	unsigned block_count;
+	wire_channel_t block_ch;
 };
 typedef struct wire_gpool wire_pool_t;
 

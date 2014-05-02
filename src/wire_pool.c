@@ -23,6 +23,8 @@ int wire_pool_init(wire_pool_t *pool, wire_pool_entry_t *entries, unsigned size,
 	pool->stack_size = stack_size;
 	pool->entries = entries;
 	list_head_init(&pool->free_list);
+	pool->block_count = 0;
+	wire_channel_init(&pool->block_ch);
 	return 0;
 }
 
@@ -36,7 +38,33 @@ static void wrapper_entry_point(void *arg)
 
 	entry_point(arg);
 
-	list_add_head(&entry->list, &pool->free_list);
+	if (pool->block_count > 0) {
+		pool->block_count--;
+		wire_channel_send(&pool->block_ch, entry);
+	} else {
+		list_add_head(&entry->list, &pool->free_list);
+	}
+}
+
+static wire_t *wire_pool_entry_init(wire_pool_t *pool, wire_pool_entry_t *entry, const char *name, void (*entry_point)(void*), void *arg)
+{
+	VALGRIND_MAKE_MEM_UNDEFINED(entry->stack, pool->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(&entry->task, sizeof(entry->task));
+
+	/* This is a cool and ugly hack at the same time,
+	 * the arguments are placed in the coroutine stack to avoid the need to
+	 * allocate a new temporary space, it is placed at the end of the stack and
+	 * the coroutine will copy it to the start of the stack at the beginning.
+	 */
+
+	struct wrapper_args *args = entry->stack;
+	args->entry_point = entry_point;
+	args->arg = arg;
+	args->entry = entry;
+	args->pool = pool;
+
+	wire_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
+	return &entry->task;
 }
 
 wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
@@ -57,36 +85,18 @@ wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)
 		return NULL;
 	}
 
-	VALGRIND_MAKE_MEM_UNDEFINED(entry->stack, pool->stack_size);
-	VALGRIND_MAKE_MEM_UNDEFINED(&entry->task, sizeof(entry->task));
-
-	/* This is a cool and ugly hack at the same time,
-	 * the arguments are placed in the coroutine stack to avoid the need to
-	 * allocate a new temporary space, it is placed at the end of the stack and
-	 * the coroutine will copy it to the start of the stack at the beginning.
-	 */
-
-	struct wrapper_args *args = entry->stack;
-	args->entry_point = entry_point;
-	args->arg = arg;
-	args->entry = entry;
-	args->pool = pool;
-
-	wire_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
-	return &entry->task;
+	return wire_pool_entry_init(pool, entry, name, entry_point, arg);
 }
 
 wire_t *wire_pool_alloc_block(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
 {
 	wire_t *wire;
+	wire = wire_pool_alloc(pool, name, entry_point, arg);
+	if (wire)
+		return wire;
 
-	do {
-		wire = wire_pool_alloc(pool, name, entry_point, arg);
-		if (wire)
-			break;
-		else
-			wire_yield();
-	} while (1);
-
-	return wire;
+	wire_pool_entry_t *entry;
+	pool->block_count++;
+	wire_channel_recv_block(&pool->block_ch, (void**)&entry);
+	return wire_pool_entry_init(pool, entry, name, entry_point, arg);
 }

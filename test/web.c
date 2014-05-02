@@ -198,7 +198,7 @@ static void accept_run(void *arg)
 			printf("New connection: %d\n", new_fd);
 			char name[32];
 			snprintf(name, sizeof(name), "web %d", new_fd);
-			wire_t *task = wire_pool_alloc(&web_pool, name, web_run, (void*)(long int)new_fd);
+			wire_t *task = wire_pool_alloc_block(&web_pool, name, web_run, (void*)(long int)new_fd);
 			if (!task) {
 				printf("Web server is busy, sorry\n");
 				close(new_fd);
@@ -216,7 +216,7 @@ int main()
 {
 	wire_thread_init(&wire_thread_main);
 	wire_fd_init();
-	wire_pool_init(&web_pool, NULL, 16, 16*1024);
+	wire_pool_init(&web_pool, NULL, 4, 16*1024);
 	wire_init(&wire_accept, "accept", accept_run, NULL, WIRE_STACK_ALLOC(4096));
 	wire_thread_run();
 	return 0;
