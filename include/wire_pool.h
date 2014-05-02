@@ -55,6 +55,16 @@ int wire_pool_init(wire_pool_t *pool, wire_pool_entry_t *entries, unsigned size,
  */
 wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg);
 
+/** Similar to wire_pool_alloc() but this one will block until a wire is available in the pool.
+ *
+ * @param[in] pool The pool to allocate a task from.
+ * @param[in] name The name to give the task.
+ * @param[in] entry_point The entry point function, it takes a void pointer argument and returns nothing.
+ * @param[in] arg The argument to pass to the entry point function when it starts.
+ * @return An allocated and initialized task. Will rescheduled the current wire until a wire is available in the pool.
+ */
+wire_t *wire_pool_alloc_block(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg);
+
 /// @}
 
 #endif

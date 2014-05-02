@@ -75,3 +75,18 @@ wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)
 	wire_init(&entry->task, name, wrapper_entry_point, args, entry->stack, pool->stack_size);
 	return &entry->task;
 }
+
+wire_t *wire_pool_alloc_block(wire_pool_t *pool, const char *name, void (*entry_point)(void*), void *arg)
+{
+	wire_t *wire;
+
+	do {
+		wire = wire_pool_alloc(pool, name, entry_point, arg);
+		if (wire)
+			break;
+		else
+			wire_yield();
+	} while (1);
+
+	return wire;
+}
