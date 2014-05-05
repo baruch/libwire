@@ -42,3 +42,13 @@ void wire_lock_release(wire_lock_t *l)
 		wire_wait_resume(&u->wait);
 	}
 }
+
+void wire_lock_wait_clear(wire_lock_t *l)
+{
+	while (l->num_users) {
+		// We wait at the end of the current list and hope that no one joins
+		wire_lock_take(l);
+		wire_lock_release(l);
+		// If someone does try to take the look after us, we'll loop again
+	}
+}

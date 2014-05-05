@@ -45,6 +45,12 @@ void wire_lock_take(wire_lock_t *l);
  */
 void wire_lock_release(wire_lock_t *l);
 
+/** Wait for the lock to be emptied of all users. This can be used when closing
+ * down the shared resource to wait for all users to finish.
+ * @param[in] l The lock to wait on.
+ */
+void wire_lock_wait_clear(wire_lock_t *l);
+
 /// @}
 
 struct wire_lock {
