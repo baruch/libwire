@@ -63,3 +63,12 @@ void wire_wait_stop(wire_wait_t *w)
 	w->waiting = 0;
 	w->triggered = 0;
 }
+
+void wire_wait_single(wire_wait_t *w)
+{
+	wire_wait_list_t wl;
+
+	wire_wait_list_init(&wl);
+	wire_wait_chain(&wl, w);
+	wire_list_wait(&wl);
+}

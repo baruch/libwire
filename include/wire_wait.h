@@ -62,6 +62,11 @@ void wire_wait_reset(wire_wait_t *w);
  */
 void wire_wait_stop(wire_wait_t *w);
 
+/** A simple waiter for just this one wait, often repeated so worth coding once for all.
+ * @param[in] w The waiter to wait indefinitely for.
+ */
+void wire_wait_single(wire_wait_t *w);
+
 /// @}
 
 struct wire_wait_list {
