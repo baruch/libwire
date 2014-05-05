@@ -6,7 +6,7 @@
 #include "list.h"
 #include "wire.h"
 
-/** @addtogroup Wait Facility
+/** @addtogroup wait Wait Facility
  * A Wait facility enables a wire to wait for different events, be they fd based or timers.
  */
 /// @{
