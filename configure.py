@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'wire', 'wire_fd', 'wire_pool', 'wire_stack', 'wire_io', 'http_parser', 'wire_channel', 'wire_wait', 'coro'
+        'wire', 'wire_fd', 'wire_pool', 'wire_stack', 'wire_io', 'http_parser', 'wire_channel', 'wire_wait', 'wire_lock', 'coro'
 ]
 
 test_srcs = {
@@ -12,6 +12,7 @@ test_srcs = {
         'channel': ('channel',),
         'waiters': ('waiters',),
         'bench': ('bench',),
+        'locks': ('locks',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',

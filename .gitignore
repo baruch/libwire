@@ -5,6 +5,7 @@ recurser
 web
 channel
 waiters
+locks
 libwire.a
 
 docs/
