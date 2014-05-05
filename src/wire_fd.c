@@ -128,6 +128,9 @@ void wire_fd_wait(wire_fd_state_t *fd_state)
 
 int wire_fd_wait_msec(int msecs)
 {
+	if (msecs <= 0)
+		return 0;
+
 	int fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC|TFD_NONBLOCK);
 	if (fd < 0) {
 		perror("Failed to create a timerfd");
