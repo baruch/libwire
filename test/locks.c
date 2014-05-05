@@ -25,15 +25,27 @@ static void lock_func(void *arg)
 	printf("Lock released from %d\n", num);
 }
 
+static void lock_close_func(void *arg)
+{
+	UNUSED(arg);
+
+	wire_fd_wait_msec(5*1000);
+	printf("Trying to close the lock now\n");
+	wire_lock_wait_clear(&lock);
+	printf("Lock is clear\n");
+}
+
 int main()
 {
 	wire_thread_init(&wire_main);
 	wire_fd_init();
 
 	const int num_wires = 8;
-	wire_pool_init(&wire_pool, NULL, num_wires, 4096);
+	wire_pool_init(&wire_pool, NULL, num_wires+1, 4096);
 
 	wire_lock_init(&lock);
+
+	wire_pool_alloc(&wire_pool, "lock closer", lock_close_func, NULL);
 
 	int i;
 	for (i = 0; i < num_wires; i++) {
