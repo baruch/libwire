@@ -1,4 +1,4 @@
-libwire
+libwire    {#mainpage}
 --------
 
 [![Build Status](https://travis-ci.org/baruch/libwire.png?branch=master)](https://travis-ci.org/baruch/libwire)
