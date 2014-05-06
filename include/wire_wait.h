@@ -40,7 +40,7 @@ void wire_wait_unchain(wire_wait_t *w);
 
 /** Wait for at least one of the chained wait reasons to wake us up.
  *
- * @param[in] w Wire list to wait on.
+ * @param[in] wl Wire list to wait on.
  * @return First wait reason that got woken, there may be more than one. The
  * caller should check for all of them in the linked list, can optimize to start at the returned item.
  */

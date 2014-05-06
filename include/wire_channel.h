@@ -66,6 +66,7 @@ int wire_channel_recv_nonblock(wire_channel_t *c, void **msg);
  *
  * @param[in] c Channel to wait for.
  * @param[in] receiver Channel receiver to use when waiting.
+ * @param[in] wait The wait object which is used to receive the notification when the channel has data to receive.
  */
 void wire_channel_recv_wait(wire_channel_t *c, wire_channel_receiver_t *receiver, wire_wait_t *wait);
 

@@ -29,7 +29,7 @@ typedef struct wire_lock wire_lock_t;
 
 /** Initialize a lock before it can be used.
  *
- * @param[in] w The lock to initialize
+ * @param[in] l The lock to initialize
  */
 void wire_lock_init(wire_lock_t *l);
 
