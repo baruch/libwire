@@ -13,11 +13,12 @@ test_srcs = {
         'waiters': ('waiters',),
         'bench': ('bench',),
         'locks': ('locks',),
+        'asyncio': ('asyncio',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
           '-Wmissing-prototypes', '-Winit-self', '-pipe', '-DCORO_STACKALLOC=0', '-D_GNU_SOURCE']
-ldflags = ['-lrt']
+ldflags = ['-lrt', '-lpthread']
 
 import os, os.path
 import ninja_syntax

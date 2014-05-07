@@ -6,6 +6,7 @@ web
 channel
 waiters
 locks
+asyncio
 libwire.a
 
 docs/
