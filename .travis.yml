@@ -15,8 +15,7 @@ compiler:
 
 env:
   - CFLAGS="-O3"
-  - CFLAGS="-O0"
-  - CFLAGS="-O0 --coverage" LDFLAGS="--coverage"
+  - CFLAGS="-O0 --coverage" LDFLAGS="--coverage" COVERAGE=1
 
 after_success:
-  - coveralls --exclude tests
+  - [ -n "$COVERAGE" ] && coveralls --exclude test
