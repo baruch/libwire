@@ -15,7 +15,7 @@ compiler:
 
 env:
   - CFLAGS="-O3"
-  - CFLAGS="-O0 --coverage" LDFLAGS="--coverage" COVERAGE=1
+  - CFLAGS="-O0 --coverage -DCOVERAGE" LDFLAGS="--coverage" COVERAGE=1
 
 after_success:
   - '[ -n "$COVERAGE" ] && coveralls --exclude test --exclude include --exclude src/http_parser.c'

@@ -15,6 +15,12 @@ static void *base;
 static const unsigned alloc_size = 10*1024*1024;
 static unsigned used_size;
 
+#ifdef COVERAGE
+void __gcov_flush(void);
+#else
+static inline void __gcov_flush(void) {}
+#endif
+
 void *wire_stack_alloc(unsigned stack_size)
 {
 	if (!page_size)
@@ -77,6 +83,7 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *unused)
 	else if (wire->stack + wire->stack_size < si->si_addr && si->si_addr < wire->stack + wire->stack_size + 4096)
 		fprintf(stderr, "Stack underflow happened\n");
 
+	__gcov_flush();
 	raise(SIGSEGV);
 }
 
