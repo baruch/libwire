@@ -1,0 +1,14 @@
+#!/bin/sh
+
+[ -z "$COVERAGE" ] && { echo "not testing recurser in non-coverage testing"; exit 0; }
+
+./recurser > test_recurser.out 2>&1
+if [ $? -eq 0 ]; then
+        echo "Recursor didn't fail as expected"
+fi
+
+grep -q "Current running wire: hello" test_recurser.out
+if [ $? -ne 0 ]; then
+        echo "stack crash handler failed"
+        exit 1
+fi

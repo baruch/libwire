@@ -10,6 +10,7 @@ asyncio
 pool
 libwire.a
 
+test_recurser.out
 docs/
 built/
 build.ninja

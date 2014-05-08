@@ -9,6 +9,8 @@ static wire_t task_recurse;
 
 static void do_recurse(int count)
 {
+	if (count > 100000)
+		return;
 	printf("level %d\n", count);
 	do_recurse(count+1);
 }
