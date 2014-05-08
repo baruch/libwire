@@ -15,6 +15,7 @@ test_srcs = {
         'locks': ('locks',),
         'asyncio': ('asyncio',),
         'pool': ('pool',),
+        'wait': ('wait',),
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
