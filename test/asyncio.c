@@ -27,9 +27,21 @@ static void io(void *arg)
 	LOG("wio_open");
 	int fd = wio_open(filename, O_CREAT|O_RDWR, 0666);
 
+	LOG("wio_fallocate");
+	int ret = wio_fallocate(fd, 0, 0, strlen(filename));
+	assert(ret == 0);
+
 	LOG("wio_pwrite");
-	int ret = wio_pwrite(fd, filename, strlen(filename), 0);
+	ret = wio_pwrite(fd, filename, strlen(filename), 0);
 	assert(ret == (int)strlen(filename));
+
+	LOG("wio_ftruncate");
+	ret = wio_ftruncate(fd, strlen(filename));
+	assert(ret == 0);
+
+	LOG("wio_fsync");
+	ret = wio_fsync(fd);
+	assert(ret == 0);
 
 	LOG("wio_pread");
 	char buf[64];
@@ -63,11 +75,11 @@ int main()
 	wire_thread_init(&wire_main);
 	wire_fd_init();
 	wire_io_init(1);
-	wire_init(&task_io1, "io 1", io, "/tmp/a.1", WIRE_STACK_ALLOC(4096));
-	wire_init(&task_io2, "io 2", io, "/tmp/a.2", WIRE_STACK_ALLOC(4096));
-	wire_init(&task_io3, "io 3", io, "/tmp/a.3", WIRE_STACK_ALLOC(4096));
-	wire_init(&task_io4, "io 4", io, "/tmp/a.4", WIRE_STACK_ALLOC(4096));
-	wire_init(&task_io5, "io 5", io, "/tmp/a.5", WIRE_STACK_ALLOC(4096));
+	wire_init(&task_io1, "io 1", io, "/tmp/a.1", WIRE_STACK_ALLOC(64*1024));
+	wire_init(&task_io2, "io 2", io, "/tmp/a.2", WIRE_STACK_ALLOC(64*1024));
+	wire_init(&task_io3, "io 3", io, "/tmp/a.3", WIRE_STACK_ALLOC(64*1024));
+	wire_init(&task_io4, "io 4", io, "/tmp/a.4", WIRE_STACK_ALLOC(64*1024));
+	wire_init(&task_io5, "io 5", io, "/tmp/a.5", WIRE_STACK_ALLOC(64*1024));
 	wire_thread_run();
 	return 0;
 }
