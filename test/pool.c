@@ -29,6 +29,16 @@ static void init_func(void *arg)
 		snprintf(name, sizeof(name), "pool %d", i);
 		wire_pool_alloc_block(&wire_pool, name, func, (void*)(long long int)i);
 	}
+
+	// Wait for all of the pool entries to get to the free block
+	wire_fd_wait_msec(500);
+
+	// Now we do the same but first allocate from the free block
+	for (i = 0; i < num_wires; i++) {
+		char name[16];
+		snprintf(name, sizeof(name), "pool %d", i);
+		wire_pool_alloc_block(&wire_pool, name, func, (void*)(long long int)i);
+	}
 }
 
 int main()
