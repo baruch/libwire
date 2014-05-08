@@ -73,6 +73,7 @@ static void io(void *arg)
 int main()
 {
 	wire_thread_init(&wire_main);
+	wire_stack_fault_detector_install();
 	wire_fd_init();
 	wire_io_init(1);
 	wire_init(&task_io1, "io 1", io, "/tmp/a.1", WIRE_STACK_ALLOC(64*1024));
