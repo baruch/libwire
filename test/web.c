@@ -13,8 +13,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <stdarg.h>
 
 #include "utils.h"
+
+#ifdef NDEBUG
+#define DEBUG(fmt, ...)
+#else
+#define DEBUG(fmt, ...) xlog(fmt, ## __VA_ARGS__)
+#endif
+
+#define WEB_POOL_SIZE 128
 
 static wire_thread_t wire_thread_main;
 static wire_t wire_accept;
@@ -25,16 +34,28 @@ struct web_data {
 	wire_fd_state_t fd_state;
 };
 
+static void xlog(const char *fmt, ...)
+{
+	char msg[256];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
+	va_end(ap);
+
+	puts(msg);
+}
+
 static int on_message_begin(http_parser *parser)
 {
 	UNUSED(parser);
-	printf("Message begin\n");
+	DEBUG("Message begin");
 	return 0;
 }
 
 static int on_headers_complete(http_parser *parser)
 {
-	printf("Headers complete: HTTP/%d.%d %s\n", parser->http_major, parser->http_minor, http_method_str(parser->method));
+	DEBUG("Headers complete: HTTP/%d.%d %s", parser->http_major, parser->http_minor, http_method_str(parser->method));
 	return 0;
 }
 
@@ -62,7 +83,7 @@ static int buf_write(wire_fd_state_t *fd_state, const char *buf, int len)
 
 static int on_message_complete(http_parser *parser)
 {
-	printf("message complete\n");
+	DEBUG("message complete");
 	struct web_data *d = parser->data;
 	char buf[512];
 	char data[512] = "Test\r\n";
@@ -78,35 +99,35 @@ static int on_message_complete(http_parser *parser)
 static int on_url(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
-	printf("URL: %.*s\n", (int)length, at);
+	DEBUG("URL: %.*s", (int)length, at);
 	return 0;
 }
 
 static int on_status(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
-	printf("STATUS: %.*s\n", (int)length, at);
+	DEBUG("STATUS: %.*s", (int)length, at);
 	return 0;
 }
 
 static int on_header_field(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
-	printf("HEADER FIELD: %.*s\n", (int)length, at);
+	DEBUG("HEADER FIELD: %.*s", (int)length, at);
 	return 0;
 }
 
 static int on_header_value(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
-	printf("HEADER VALUE: %.*s\n", (int)length, at);
+	DEBUG("HEADER VALUE: %.*s", (int)length, at);
 	return 0;
 }
 
 static int on_body(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
-	printf("BODY: %.*s\n", (int)length, at);
+	DEBUG("BODY: %.*s", (int)length, at);
 	return 0;
 }
 
@@ -141,71 +162,81 @@ static void web_run(void *arg)
 	do {
 		buf[0] = 0;
 		int received = read(d.fd, buf, sizeof(buf));
-		printf("Received: %d %d\n", received, errno);
+		DEBUG("Received: %d %d", received, errno);
 		if (received == 0) {
 			/* Fall-through, tell parser about EOF */
-			printf("Received EOF\n");
+			DEBUG("Received EOF");
 		} else if (received < 0) {
-			printf("Error\n");
 			if (errno == EINTR || errno == EAGAIN) {
-				printf("Waiting\n");
+				DEBUG("Waiting");
 				/* Nothing received yet, wait for it */
 				wire_fd_wait(&d.fd_state);
-				printf("Done waiting\n");
+				DEBUG("Done waiting");
 				continue;
 			} else {
-				printf("breaking out\n");
+				DEBUG("Error receiving from socket %d: %m", d.fd);
 				break;
 			}
 		}
 
-		printf("Processing %d\n", (int)received);
+		DEBUG("Processing %d", (int)received);
 		size_t processed = http_parser_execute(&parser, &parser_settings, buf, received);
 		if (parser.upgrade) {
 			/* Upgrade not supported yet */
-			printf("Upgrade no supported, bailing out\n");
+			xlog("Upgrade no supported, bailing out");
 			break;
 		} else if (received == 0) {
 			// At EOF, exit now
-			printf("Received EOF\n");
+			DEBUG("Received EOF");
 			break;
 		} else if (processed != (size_t)received) {
 			// Error in parsing
-			printf("Not everything was parsed, error is likely, bailing out.\n");
+			xlog("Not everything was parsed, error is likely, bailing out.");
 			break;
 		}
 	} while (1);
 
 	wire_fd_mode_none(&d.fd_state);
 	close(d.fd);
+	DEBUG("Disconnected %d", d.fd);
 }
 
 static void accept_run(void *arg)
 {
 	UNUSED(arg);
-	int fd = socket_setup(9090);
+	int port = 9090;
+	int fd = socket_setup(port);
 	if (fd < 0)
 		return;
+
+	xlog("Listening on port %d", port);
 
 	wire_fd_state_t fd_state;
 	wire_fd_mode_init(&fd_state, fd);
 	wire_fd_mode_read(&fd_state);
 
+	/* To be as fast as possible we want to accept all pending connections
+	 * without waiting in between, the throttling will happen by either there
+	 * being no more pending listeners to accept or by the wire pool blocking
+	 * when it is exhausted.
+	 */
 	while (1) {
-		wire_fd_wait(&fd_state);
 		int new_fd = accept(fd, NULL, NULL);
 		if (new_fd >= 0) {
-			printf("New connection: %d\n", new_fd);
+			DEBUG("New connection: %d", new_fd);
 			char name[32];
 			snprintf(name, sizeof(name), "web %d", new_fd);
 			wire_t *task = wire_pool_alloc_block(&web_pool, name, web_run, (void*)(long int)new_fd);
 			if (!task) {
-				printf("Web server is busy, sorry\n");
+				xlog("Web server is busy, sorry");
 				close(new_fd);
 			}
 		} else {
-			if (errno != EINTR && errno != EAGAIN) {
-				perror("Error accepting from listening socket");
+			if (errno == EINTR || errno == EAGAIN) {
+				/* Wait for the next connection */
+				wire_fd_wait(&fd_state);
+			} else {
+				xlog("Error accepting from listening socket: %m");
 				break;
 			}
 		}
@@ -216,7 +247,7 @@ int main()
 {
 	wire_thread_init(&wire_thread_main);
 	wire_fd_init();
-	wire_pool_init(&web_pool, NULL, 4, 16*1024);
+	wire_pool_init(&web_pool, NULL, WEB_POOL_SIZE, 16*1024);
 	wire_init(&wire_accept, "accept", accept_run, NULL, WIRE_STACK_ALLOC(4096));
 	wire_thread_run();
 	return 0;
