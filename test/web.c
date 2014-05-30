@@ -55,6 +55,7 @@ static int on_message_begin(http_parser *parser)
 
 static int on_headers_complete(http_parser *parser)
 {
+	UNUSED(parser); // When in NDEBUG
 	DEBUG("Headers complete: HTTP/%d.%d %s", parser->http_major, parser->http_minor, http_method_str(parser->method));
 	return 0;
 }
@@ -99,6 +100,8 @@ static int on_message_complete(http_parser *parser)
 static int on_url(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
+	UNUSED(at); // When in NDEBUG
+	UNUSED(length); // When in NDEBUG
 	DEBUG("URL: %.*s", (int)length, at);
 	return 0;
 }
@@ -106,6 +109,8 @@ static int on_url(http_parser *parser, const char *at, size_t length)
 static int on_status(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
+	UNUSED(at); // When in NDEBUG
+	UNUSED(length); // When in NDEBUG
 	DEBUG("STATUS: %.*s", (int)length, at);
 	return 0;
 }
@@ -113,6 +118,8 @@ static int on_status(http_parser *parser, const char *at, size_t length)
 static int on_header_field(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
+	UNUSED(at); // When in NDEBUG
+	UNUSED(length); // When in NDEBUG
 	DEBUG("HEADER FIELD: %.*s", (int)length, at);
 	return 0;
 }
@@ -120,6 +127,8 @@ static int on_header_field(http_parser *parser, const char *at, size_t length)
 static int on_header_value(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
+	UNUSED(at); // When in NDEBUG
+	UNUSED(length); // When in NDEBUG
 	DEBUG("HEADER VALUE: %.*s", (int)length, at);
 	return 0;
 }
@@ -127,6 +136,8 @@ static int on_header_value(http_parser *parser, const char *at, size_t length)
 static int on_body(http_parser *parser, const char *at, size_t length)
 {
 	UNUSED(parser);
+	UNUSED(at); // When in NDEBUG
+	UNUSED(length); // When in NDEBUG
 	DEBUG("BODY: %.*s", (int)length, at);
 	return 0;
 }
