@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <signal.h>
 
 struct wire_io {
 	pthread_mutex_t mutex;
@@ -195,11 +196,21 @@ static void perform_action(struct wire_io_act *act)
 #undef RUN_RET
 }
 
+static void block_signals(void)
+{
+	sigset_t sigset;
+
+	sigfillset(&sigset);
+	pthread_sigmask(SIG_BLOCK, &sigset, NULL);
+}
+
 /* The async thread implementation that waits for async actions to perform and runs them.
  */
 static void *wire_io_thread(void *arg)
 {
 	struct wire_io *wio = arg;
+
+	block_signals();
 
 	while (1) {
 		struct wire_io_act *act = get_action(wio);
