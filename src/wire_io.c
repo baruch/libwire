@@ -198,10 +198,10 @@ static void perform_action(struct wire_io_act *act)
 
 static void block_signals(void)
 {
-	sigset_t sigset;
+	sigset_t sig_set;
 
-	sigfillset(&sigset);
-	pthread_sigmask(SIG_BLOCK, &sigset, NULL);
+	sigfillset(&sig_set);
+	pthread_sigmask(SIG_BLOCK, &sig_set, NULL);
 }
 
 /* The async thread implementation that waits for async actions to perform and runs them.
