@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/vfs.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -30,6 +31,8 @@ int wio_fstat(int fd, struct stat *buf);
 int wio_ftruncate(int fd, off_t length);
 int wio_fallocate(int fd, int mode, off_t offset, off_t len);
 int wio_fsync(int fd);
+int wio_statfs(const char *path, struct statfs *buf);
+int wio_fstatfs(int fd, struct statfs *buf);
 
 /// @}
 

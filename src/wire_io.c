@@ -32,6 +32,8 @@ enum wio_type {
 	IO_FTRUNCATE,
 	IO_FSYNC,
 	IO_FSTAT,
+	IO_STATFS,
+	IO_FSTATFS,
 };
 
 struct wire_io_act {
@@ -91,6 +93,18 @@ struct wire_io_act {
 			int ret;
 			int verrno;
 		} fsync;
+		struct {
+			const char *path;
+			struct statfs *buf;
+			int ret;
+			int verrno;
+		} statfs;
+		struct {
+			int fd;
+			struct statfs *buf;
+			int ret;
+			int verrno;
+		} fstatfs;
 	};
 	wire_wait_t *wait;
 };
@@ -190,6 +204,12 @@ static void perform_action(struct wire_io_act *act)
 			break;
 		case IO_FSYNC:
 			RUN_RET(fsync, fsync(act->fsync.fd));
+			break;
+		case IO_STATFS:
+			RUN_RET(statfs, statfs(act->statfs.path, act->statfs.buf));
+			break;
+		case IO_FSTATFS:
+			RUN_RET(fstatfs, fstatfs(act->fstatfs.fd, act->fstatfs.buf));
 			break;
 	}
 	//DEBUG: printf("Done performing act %p\n", act);
@@ -386,4 +406,20 @@ int wio_fsync(int fd)
 	DEF(IO_FSYNC);
 	act.fsync.fd = fd;
 	SEND_RET(fsync);
+}
+
+int wio_statfs(const char *path, struct statfs *buf)
+{
+	DEF(IO_STATFS);
+	act.statfs.path = path;
+	act.statfs.buf = buf;
+	SEND_RET(statfs);
+}
+
+int wio_fstatfs(int fd, struct statfs *buf)
+{
+	DEF(IO_FSTATFS);
+	act.fstatfs.fd = fd;
+	act.fstatfs.buf = buf;
+	SEND_RET(fstatfs);
 }
