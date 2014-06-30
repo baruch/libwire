@@ -28,6 +28,7 @@ int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
 ssize_t wio_pwrite(int fd, const void *buf, size_t count, off_t offset);
 int wio_fstat(int fd, struct stat *buf);
+int wio_stat(const char *path, struct stat *buf);
 int wio_ftruncate(int fd, off_t length);
 int wio_fallocate(int fd, int mode, off_t offset, off_t len);
 int wio_fsync(int fd);

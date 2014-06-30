@@ -32,6 +32,7 @@ enum wio_type {
 	IO_FTRUNCATE,
 	IO_FSYNC,
 	IO_FSTAT,
+	IO_STAT,
 	IO_STATFS,
 	IO_FSTATFS,
 };
@@ -74,6 +75,12 @@ struct wire_io_act {
 			int ret;
 			int verrno;
 		} fstat;
+		struct {
+			const char *path;
+			struct stat *buf;
+			int ret;
+			int verrno;
+		} stat;
 		struct {
 			int fd;
 			off_t length;
@@ -195,6 +202,9 @@ static void perform_action(struct wire_io_act *act)
 			break;
 		case IO_FSTAT:
 			RUN_RET(fstat, fstat(act->fstat.fd, act->fstat.buf));
+			break;
+		case IO_STAT:
+			RUN_RET(stat, stat(act->stat.path, act->stat.buf));
 			break;
 		case IO_FTRUNCATE:
 			RUN_RET(ftruncate, ftruncate(act->ftruncate.fd, act->ftruncate.length));
@@ -381,6 +391,14 @@ int wio_fstat(int fd, struct stat *buf)
 	act.fstat.fd = fd;
 	act.fstat.buf = buf;
 	SEND_RET(fstat);
+}
+
+int wio_stat(const char *path, struct stat *buf)
+{
+	DEF(IO_STAT);
+	act.stat.path = path;
+	act.stat.buf = buf;
+	SEND_RET(stat);
 }
 
 int wio_ftruncate(int fd, off_t length)
