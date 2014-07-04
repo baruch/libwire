@@ -19,7 +19,8 @@ static void clear_timeout(int fd)
 {
 	// Clear the timeout if it already triggered
 	uint64_t val;
-	(void)read(fd, &val, sizeof(val));
+	int ret = read(fd, &val, sizeof(val));
+	(void)ret;
 }
 
 int wire_timeout_reset(wire_timeout_t *tout, int timeout_msec)
