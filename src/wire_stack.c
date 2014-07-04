@@ -51,7 +51,7 @@ void *wire_stack_alloc(unsigned stack_size)
 	base += stack_size + page_size;
 	used_size += stack_size + page_size;
 
-	VALGRIND_STACK_REGISTER(ptr, ptr + stack_size);
+	(void)VALGRIND_STACK_REGISTER(ptr, ptr + stack_size);
 	return ptr;
 }
 
