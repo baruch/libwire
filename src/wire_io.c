@@ -28,6 +28,8 @@ enum wio_type {
 	IO_CLOSE,
 	IO_PREAD,
 	IO_PWRITE,
+	IO_READ,
+	IO_WRITE,
 	IO_FALLOCATE,
 	IO_FTRUNCATE,
 	IO_FSYNC,
@@ -70,6 +72,20 @@ struct wire_io_act {
 			int ret;
 			int verrno;
 		} pwrite;
+		struct {
+			int fd;
+			void *buf;
+			size_t count;
+			int ret;
+			int verrno;
+		} read;
+		struct {
+			int fd;
+			const void *buf;
+			size_t count;
+			int ret;
+			int verrno;
+		} write;
 		struct {
 			int fd;
 			struct stat *buf;
@@ -208,6 +224,12 @@ static void perform_action(struct wire_io_act *act)
 			break;
 		case IO_PWRITE:
 			RUN_RET(pwrite, pwrite(act->pwrite.fd, act->pwrite.buf, act->pwrite.count, act->pwrite.offset));
+			break;
+		case IO_READ:
+			RUN_RET(read, read(act->read.fd, act->read.buf, act->read.count));
+			break;
+		case IO_WRITE:
+			RUN_RET(write, write(act->write.fd, act->write.buf, act->write.count));
 			break;
 		case IO_FSTAT:
 			RUN_RET(fstat, fstat(act->fstat.fd, act->fstat.buf));
@@ -395,6 +417,24 @@ ssize_t wio_pwrite(int fd, const void *buf, size_t count, off_t offset)
 	act.pwrite.count = count;
 	act.pwrite.offset = offset;
 	SEND_RET(pwrite);
+}
+
+ssize_t wio_read(int fd, void *buf, size_t count)
+{
+	DEF(IO_READ);
+	act.read.fd = fd;
+	act.read.buf = buf;
+	act.read.count = count;
+	SEND_RET(read);
+}
+
+ssize_t wio_write(int fd, const void *buf, size_t count)
+{
+	DEF(IO_WRITE);
+	act.write.fd = fd;
+	act.write.buf = buf;
+	act.write.count = count;
+	SEND_RET(write);
 }
 
 int wio_fstat(int fd, struct stat *buf)
