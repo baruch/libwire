@@ -30,8 +30,7 @@ int wire_timeout_reset(wire_timeout_t *tout, int timeout_msec)
 	tspec.it_interval.tv_nsec = 0;
 	tspec.it_value.tv_sec = timeout_msec / 1000;
 	timeout_msec %= 1000;
-	if (timeout_msec)
-		tspec.it_value.tv_nsec = timeout_msec * 1000 * 1000;
+	tspec.it_value.tv_nsec = timeout_msec ? timeout_msec * 1000 * 1000 : 0;
 
 	clear_timeout(tout->fd_state.fd);
 
