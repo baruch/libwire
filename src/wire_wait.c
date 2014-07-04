@@ -46,7 +46,7 @@ wire_wait_t *wire_list_wait(wire_wait_list_t *wl)
 
 void wire_wait_resume(wire_wait_t *w)
 {
-	if (w->waiting) {
+	if (w->waiting && !w->triggered) {
 		w->triggered = 1;
 		wire_resume(w->start->wire);
 	}
