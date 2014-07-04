@@ -3,6 +3,7 @@ bench
 echo_server
 recurser
 web
+web_client
 channel
 waiters
 locks
@@ -16,3 +17,5 @@ docs/
 built/
 build.ninja
 .ninja*
+.gdb_history
+save.*.log
