@@ -15,6 +15,13 @@ int wire_timeout_init(wire_timeout_t *tout)
 	return 0;
 }
 
+static void clear_timeout(int fd)
+{
+	// Clear the timeout if it already triggered
+	uint64_t val;
+	read(fd, &val, sizeof(val));
+}
+
 int wire_timeout_reset(wire_timeout_t *tout, int timeout_msec)
 {
 	struct itimerspec tspec;
@@ -26,11 +33,10 @@ int wire_timeout_reset(wire_timeout_t *tout, int timeout_msec)
 	if (timeout_msec)
 		tspec.it_value.tv_nsec = timeout_msec * 1000 * 1000;
 
-	// Clear the timeout if it already triggered
-	uint64_t val;
-	read(tout->fd_state.fd, &val, sizeof(val));
+	clear_timeout(tout->fd_state.fd);
 
 	// Set the new timeout
+	wire_timeout_wait_start(tout);
 	return timerfd_settime(tout->fd_state.fd, 0, &tspec, NULL);
 }
 
@@ -49,4 +55,5 @@ void wire_timeout_wait_start(wire_timeout_t *tout)
 void wire_timeout_wait_stop(wire_timeout_t *tout)
 {
 	wire_fd_mode_none(&tout->fd_state);
+	clear_timeout(tout->fd_state.fd);
 }
