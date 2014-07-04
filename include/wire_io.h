@@ -5,9 +5,11 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <sys/vfs.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <netdb.h>
 
 /** @addtogroup IO
  * Async IO emulation for those IO operations that do not support async io by
@@ -34,6 +36,7 @@ int wio_fallocate(int fd, int mode, off_t offset, off_t len);
 int wio_fsync(int fd);
 int wio_statfs(const char *path, struct statfs *buf);
 int wio_fstatfs(int fd, struct statfs *buf);
+int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 
 /// @}
 

@@ -35,6 +35,7 @@ enum wio_type {
 	IO_STAT,
 	IO_STATFS,
 	IO_FSTATFS,
+	IO_GETADDRINFO,
 };
 
 struct wire_io_act {
@@ -112,6 +113,14 @@ struct wire_io_act {
 			int ret;
 			int verrno;
 		} fstatfs;
+		struct {
+			const char *node;
+			const char *service;
+			const struct addrinfo *hints;
+			struct addrinfo **res;
+			int ret;
+			int verrno;
+		} getaddrinfo;
 	};
 	wire_wait_t *wait;
 };
@@ -220,6 +229,9 @@ static void perform_action(struct wire_io_act *act)
 			break;
 		case IO_FSTATFS:
 			RUN_RET(fstatfs, fstatfs(act->fstatfs.fd, act->fstatfs.buf));
+			break;
+		case IO_GETADDRINFO:
+			RUN_RET(getaddrinfo, getaddrinfo(act->getaddrinfo.node, act->getaddrinfo.service, act->getaddrinfo.hints, act->getaddrinfo.res));
 			break;
 	}
 	//DEBUG: printf("Done performing act %p\n", act);
@@ -440,4 +452,14 @@ int wio_fstatfs(int fd, struct statfs *buf)
 	act.fstatfs.fd = fd;
 	act.fstatfs.buf = buf;
 	SEND_RET(fstatfs);
+}
+
+int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
+{
+	DEF(IO_GETADDRINFO);
+	act.getaddrinfo.node = node;
+	act.getaddrinfo.service = service;
+	act.getaddrinfo.hints = hints;
+	act.getaddrinfo.res = res;
+	SEND_RET(getaddrinfo);
 }
