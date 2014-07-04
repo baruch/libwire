@@ -20,7 +20,8 @@ test_srcs = {
 }
 
 cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
-          '-Wmissing-prototypes', '-Winit-self', '-pipe', '-DCORO_STACKALLOC=0', '-D_GNU_SOURCE']
+          '-Wmissing-prototypes', '-Winit-self', '-pipe', '-DCORO_STACKALLOC=0', '-D_GNU_SOURCE',
+          '-D_FORTIFY_SOURCE=2']
 ldflags = ['-lrt', '-lpthread']
 
 import os, os.path
