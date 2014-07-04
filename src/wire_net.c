@@ -82,8 +82,10 @@ int wire_net_write(wire_net_t *net, const void *buf, size_t count, size_t *psent
 				wire_fd_mode_write(&net->fd_state);
 				wire_wait_t *tout_wait = wire_timeout_wait_get(&net->tout);
 				ret = wait_for_2(&net->fd_state.wait, tout_wait);
-				if (ret != 1) // Not the IO returned
+				if (ret != 1) { // Not the IO returned
+					wire_timeout_wait_stop(&net->tout);
 					goto Exit;
+				}
 			} else if (errno == EINTR) {
 				continue;
 			} else {
@@ -118,8 +120,10 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 				wire_fd_mode_read(&net->fd_state);
 				wire_wait_t *tout_wait = wire_timeout_wait_get(&net->tout);
 				ret = wait_for_2(&net->fd_state.wait, tout_wait);
-				if (ret != 1) // Not the IO returned
+				if (ret != 1) {// Not the IO returned
+					wire_timeout_wait_stop(&net->tout);
 					goto Exit;
+				}
 			} else if (errno == EINTR) {
 				continue;
 			} else {
