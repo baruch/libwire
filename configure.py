@@ -24,6 +24,7 @@ cflags = ['-Iinclude', '-g', '-O0', '-Wall', '-Werror', '-Wextra', '-Wshadow',
 ldflags = ['-lrt', '-lpthread']
 
 import os, os.path
+import glob
 import ninja_syntax
 
 if os.path.exists('/usr/include/valgrind/valgrind.h'):
@@ -130,7 +131,7 @@ n.rule('tags',
         command='ctags $in',
         description='CTAGS $out'
         )
-all_targets += n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs] + [os.path.join('include', name) for name in os.listdir('include')])
+all_targets += n.build('tags', 'tags', [src(name) + '.c' for name in lib_srcs] + glob.glob('include/*.h'))
 n.newline()
 
 n.comment('Create doxygen docs, requires explicit build: ninja doxygen')
