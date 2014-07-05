@@ -29,6 +29,7 @@ static void io(void *arg)
 
 	LOG("wio_fallocate");
 	int ret = wio_fallocate(fd, 0, 0, strlen(filename));
+	(void)ret;
 	assert(ret == 0);
 
 	LOG("wio_pwrite");
