@@ -14,15 +14,11 @@ static wire_t task_io3;
 static wire_t task_io4;
 static wire_t task_io5;
 
-static int count;
-
 #define LOG(msg) printf("%s:" msg "\n", filename)
 
 static void io(void *arg)
 {
 	const char *filename = arg;
-
-	count++;
 
 	LOG("wio_open");
 	int fd = wio_open(filename, O_CREAT|O_RDWR, 0666);
@@ -64,11 +60,6 @@ static void io(void *arg)
 	wio_close(fd);
 
 	LOG("Done");
-
-	count--;
-	if (count == 0) {
-		wire_io_shutdown();
-	}
 }
 
 int main()

@@ -131,7 +131,6 @@ uses pthread mutexes and conditions and may block but hopefully contention on
 the locks will be minimal.
 
     void wire_io_init(int num_threads);
-    void wire_io_shutdown(void);
     int wio_open(const char *pathname, int flags, mode_t mode);
     int wio_close(int fd);
     ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);

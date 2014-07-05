@@ -19,8 +19,6 @@ struct wire_io {
 	wire_fd_state_t fd_state;
 	int response_send_fd;
 	int response_recv_fd;
-	int shutdown;
-	int num_threads;
 	int num_active_ios;
 	wire_t wire;
 } wire_io;
@@ -194,7 +192,7 @@ static struct wire_io_act *get_action(struct wire_io *wio)
 {
 	pthread_mutex_lock(&wio->mutex);
 
-	while (list_empty(&wio->list) && !wio->shutdown)
+	while (list_empty(&wio->list))
 		pthread_cond_wait(&wio->cond, &wio->mutex);
 
 	struct list_head *head = list_head(&wio->list);
@@ -281,10 +279,6 @@ static void *wire_io_thread(void *arg)
 	while (1) {
 		struct wire_io_act *act = get_action(wio);
 		if (!act) {
-			if (wio->shutdown) {
-				return_action(wio, NULL);
-				break;
-			}
 			continue;
 		}
 
@@ -313,11 +307,6 @@ static void wire_io_response(void *arg)
 				wio->num_active_ios--;
 				if (wio->num_active_ios == 0)
 					wire_fd_mode_none(&wio->fd_state);
-			} else {
-				// act==NULL means thread shutdown
-				wio->num_threads--;
-				if (wio->num_threads == 0)
-					break;
 			}
 		} else if (ret < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -343,9 +332,7 @@ static void wire_io_response(void *arg)
 
 void wire_io_init(int num_threads)
 {
-	wire_io.num_threads = num_threads;
 	wire_io.num_active_ios = 0;
-	wire_io.shutdown = 0;
 	list_head_init(&wire_io.list);
 	pthread_mutex_init(&wire_io.mutex, NULL);
 	pthread_cond_init(&wire_io.cond, NULL);
@@ -370,12 +357,6 @@ void wire_io_init(int num_threads)
 	}
 }
 
-void wire_io_shutdown(void)
-{
-	wire_io.shutdown = 1;
-	pthread_cond_broadcast(&wire_io.cond);
-}
-
 static void wakeup_fd_listener(void)
 {
 	if (wire_io.num_active_ios == 0)
@@ -385,10 +366,6 @@ static void wakeup_fd_listener(void)
 
 #define DEF(_type_) struct wire_io_act act; act.type = _type_
 #define SEND_RET(_name_) \
-	if (wire_io.shutdown) {\
-		errno = EINVAL; \
-		return -1; \
-	} \
 	wakeup_fd_listener(); \
 	submit_action(&wire_io, &act); \
 	if (act._name_.ret < 0) \
