@@ -22,11 +22,14 @@ static void io(void *arg)
 
 	LOG("wio_open");
 	int fd = wio_open(filename, O_CREAT|O_RDWR, 0666);
-
-	LOG("wio_fallocate");
-	int ret = wio_fallocate(fd, 0, 0, strlen(filename));
-	assert(ret == 0);
+	int ret;
 	(void)ret;
+
+#if 0
+	LOG("wio_fallocate");
+	ret = wio_fallocate(fd, 0, 0, strlen(filename));
+	assert(ret == 0);
+#endif
 
 	LOG("wio_pwrite");
 	ret = wio_pwrite(fd, filename, strlen(filename), 0);
