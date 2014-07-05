@@ -116,9 +116,6 @@ int wire_fd_mode_none(wire_fd_state_t *fd_state)
 
 void wire_fd_wait(wire_fd_state_t *fd_state)
 {
-	if (fd_state->state == FD_MODE_NONE)
-		return;
-
 	wire_wait_list_t wait_list;
 
 	wire_wait_list_init(&wait_list);
