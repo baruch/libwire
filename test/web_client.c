@@ -50,10 +50,11 @@ static void wlog(const char *msg, ...)
 
 #define HTTP_PROTOCOL "http://"
 
-static int parse_url(char *url, char **phostname, char **purl_path)
+static int parse_url(char *url, char **phostname, char **pport, char **purl_path)
 {
 	char *hostname;
 	char *url_path;
+	char *port;
 
 	if (memcmp(url, HTTP_PROTOCOL, strlen(HTTP_PROTOCOL)) != 0)
 		return -1;
@@ -65,8 +66,15 @@ static int parse_url(char *url, char **phostname, char **purl_path)
 	hostname = url;
 	hostname[hostname_len] = 0;
 
+	port = strchr(hostname, ':');
+	if (port) {
+		*port = 0;
+		port++;
+	}
+
 	*phostname = hostname;
 	*purl_path = url_path;
+	*pport = port ? port : "http";
 	return 0;
 }
 
@@ -75,6 +83,7 @@ static void dl_wire_func(void *arg)
 	char *url = arg;
 	char *hostname;
 	char *url_path;
+	char *port;
 	int ret;
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
@@ -85,7 +94,7 @@ static void dl_wire_func(void *arg)
 
 	snprintf(filename, sizeof(filename), "save.%d.log", file_idx++);
 
-	if (parse_url(url, &hostname, &url_path) < 0) {
+	if (parse_url(url, &hostname, &port, &url_path) < 0) {
 		wlog("Invalid URL %s", url);
 		return;
 	}
@@ -98,9 +107,9 @@ static void dl_wire_func(void *arg)
 	hints.ai_flags = 0;
 	hints.ai_protocol = 0;          /* Any protocol */
 
-	ret = wio_getaddrinfo(hostname, "http", &hints, &result);
+	ret = wio_getaddrinfo(hostname, port, &hints, &result);
 	if (ret != 0) {
-		wlog("Hostname resolution failed for %s", hostname);
+		wlog("Hostname resolution failed for %s port %s", hostname, port);
 		return;
 	}
 
@@ -123,7 +132,7 @@ static void dl_wire_func(void *arg)
 	freeaddrinfo(result);           /* No longer needed */
 
 	if (rp == NULL) {               /* No address succeeded */
-		wlog("Could not connect to %s", hostname);
+		wlog("Could not connect to %s:%s", hostname, port);
 		return;
 	}
 
@@ -165,7 +174,7 @@ static void dl_wire_func(void *arg)
 	char buf[2048];
 	size_t rcvd;
 
-	wlog("Reading data for http://%s%s", hostname, url_path);
+	wlog("Reading data for http://%s:%s%s", hostname, port, url_path);
 
 	do {
 		ret = wire_net_read_any(&net, buf, sizeof(buf), &rcvd);
@@ -176,13 +185,13 @@ static void dl_wire_func(void *arg)
 		}
 	} while (ret >= 0 && rcvd > 0);
 
-	wlog("Download succeeded for http://%s%s", hostname, url_path);
+	wlog("Download succeeded for http://%s:%s%s", hostname, port, url_path);
 
 	wio_close(save_fd);
 
 Exit:
 	wire_net_close(&net);
-	wlog("Finished download for http://%s%s", hostname, url_path);
+	wlog("Finished download for http://%s:%s%s", hostname, port, url_path);
 }
 
 static void init_wire_func(void *arg)
