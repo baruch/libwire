@@ -298,12 +298,13 @@ static void wire_io_response(void *arg)
 	set_nonblock(wio->response_recv_fd);
 
 	while (1) {
-		struct wire_io_act *act = NULL;
-		ssize_t ret = read(wio->response_recv_fd, &act, sizeof(act));
-		if (ret == sizeof(act)) {
-			//DEBUG: printf("Got back act %p\n", act);
-			if (act) {
-				wire_wait_resume(act->wait);
+		struct wire_io_act *act[32];
+		ssize_t ret = read(wio->response_recv_fd, act, sizeof(act));
+		if (ret > 0) {
+			unsigned i;
+			const unsigned num_ret = ret / sizeof(act[0]);
+			for (i = 0; i < num_ret; i++) {
+				wire_wait_resume(act[i]->wait);
 				wio->num_active_ios--;
 				if (wio->num_active_ios == 0)
 					wire_fd_mode_none(&wio->fd_state);
@@ -318,7 +319,7 @@ static void wire_io_response(void *arg)
 				abort();
 			}
 		} else {
-			fprintf(stderr, "Reading response socket returned incomplete data, ret=%d expected=%u\n", (int)ret, (unsigned)sizeof(act));
+			fprintf(stderr, "EOF on the socketpair is highly improbable\n");
 			abort();
 		}
 	}
