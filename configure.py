@@ -108,10 +108,7 @@ gen_wire_io_c = n.build('src/wire_io_gen.c', 'gen_wire_io', implicit='tools/gen_
 
 lib_objs = []
 for source in lib_srcs:
-        if source == 'wire_io' or source == 'wire_timeout':
-                implicits = gen_wire_io_c + gen_wire_io_h
-        else:
-                implicits = None
+        implicits = gen_wire_io_c + gen_wire_io_h
         lib_objs += cc(source, src, implicit=implicits)
 lib = n.build('libwire.a', 'ar', lib_objs)
 all_targets += lib
