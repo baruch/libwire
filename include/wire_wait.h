@@ -49,8 +49,9 @@ wire_wait_t *wire_list_wait(wire_wait_list_t *wl);
 /** Wake a waiter. This will wake a waiter if it isn't already triggered.
  *
  * @param[in] w Wait facility to wakeup.
+ * @return Whether the resume did any work or was a no-op.
  */
-void wire_wait_resume(wire_wait_t *w);
+int wire_wait_resume(wire_wait_t *w);
 
 /** Reset a waiter to wait again. This is used to reset a triggered or stopped waiter to be marked again as waiting.
  * @param[in] w Wait facility to reset.

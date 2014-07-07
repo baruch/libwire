@@ -51,7 +51,10 @@ static void wire_fd_monitor(void *arg)
 
 		for (i = 0; i < event_count; i++) {
 			wire_fd_state_t *fd_state = events[i].data.ptr;
-			wire_wait_resume(&fd_state->wait);
+			if (!wire_wait_resume(&fd_state->wait)) {
+				// If the resume is not needed, disable the fd_state so we won't be in a busy loop
+				wire_fd_mode_none(fd_state);
+			}
 		}
 
 		// Let the just resumed wires and other ready wires get their time
