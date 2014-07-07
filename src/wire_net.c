@@ -48,7 +48,6 @@ int wire_net_connect(wire_net_t *net, const struct sockaddr *addr, socklen_t add
 
 	wire_fd_mode_write(&net->fd_state);
 	wait_for_2(&net->fd_state.wait, tout_wait);
-	wire_fd_mode_none(&net->fd_state);
 
 	// We have reached here after a connect or a timeout
 	int error;
@@ -98,7 +97,6 @@ int wire_net_write(wire_net_t *net, const void *buf, size_t count, size_t *psent
 	res = 0;
 
 Exit:
-	wire_fd_mode_none(&net->fd_state);
 	*psent = sent;
 	return res;
 }
@@ -136,7 +134,6 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 	res = 0;
 
 Exit:
-	wire_fd_mode_none(&net->fd_state);
 	*prcvd = rcvd;
 	return res;
 }
