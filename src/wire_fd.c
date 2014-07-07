@@ -50,8 +50,8 @@ static void wire_fd_monitor(void *arg)
 		int i;
 
 		for (i = 0; i < event_count; i++) {
-			wire_wait_t *wire = events[i].data.ptr;
-			wire_wait_resume(wire);
+			wire_fd_state_t *fd_state = events[i].data.ptr;
+			wire_wait_resume(&fd_state->wait);
 		}
 
 		// Let the just resumed wires and other ready wires get their time
@@ -86,7 +86,7 @@ static int wire_fd_mode_switch(wire_fd_state_t *fd_state, wire_fd_mode_e end_mod
 	uint32_t event_code = end_mode == FD_MODE_READ ? EPOLLIN : EPOLLOUT;
 	struct epoll_event event = {
 		.events = event_code,
-		.data.ptr = &fd_state->wait
+		.data.ptr = fd_state
 	};
 	int ret = epoll_ctl(state.epoll_fd, op, fd_state->fd, &event);
 	if (ret >= 0) {
