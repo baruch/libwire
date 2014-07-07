@@ -87,6 +87,11 @@ n.rule('link',
 )
 n.newline()
 
+n.rule('gen_wire_io',
+        command='tools/gen_wire_io.py $type > $out',
+        description='GEN_WIRE_IO $out')
+n.newline()
+
 def src(filename):
         return os.path.join('src', filename)
 def btest(filename):
@@ -98,9 +103,16 @@ def cc(filename, src, **kwargs):
 
 all_targets = []
 
+gen_wire_io_h = n.build('include/wire_io_gen.h', 'gen_wire_io', implicit='tools/gen_wire_io.py', variables=[('type', 'h')])
+gen_wire_io_c = n.build('src/wire_io_gen.c', 'gen_wire_io', implicit='tools/gen_wire_io.py', variables=[('type', 'c')])
+
 lib_objs = []
 for source in lib_srcs:
-        lib_objs += cc(source, src)
+        if source == 'wire_io' or source == 'wire_timeout':
+                implicits = gen_wire_io_c + gen_wire_io_h
+        else:
+                implicits = None
+        lib_objs += cc(source, src, implicit=implicits)
 lib = n.build('libwire.a', 'ar', lib_objs)
 all_targets += lib
 n.newline()
@@ -144,3 +156,5 @@ n.newline()
 
 n.build('all', 'phony', all_targets)
 n.default('all')
+
+print 'Configure done'

@@ -19,3 +19,5 @@ build.ninja
 .ninja*
 .gdb_history
 save.*.log
+include/wire_io_gen.h
+src/wire_io_gen.c
