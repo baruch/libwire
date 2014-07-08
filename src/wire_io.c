@@ -60,7 +60,7 @@ static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
 	wire_list_wait(&wait_list);
 }
 
-#include "wire_io_gen.c"
+#include "wire_io_gen.c.inc"
 
 static inline void set_nonblock(int fd)
 {
