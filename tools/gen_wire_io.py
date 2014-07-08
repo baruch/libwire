@@ -5,9 +5,11 @@ includes = [
         "sys/stat.h",
         "sys/socket.h",
         "sys/vfs.h",
+        "sys/ioctl.h",
         "fcntl.h",
         "unistd.h",
         "netdb.h",
+        "ifaddrs.h"
         ]
 
 syscalls = [
@@ -25,6 +27,8 @@ syscalls = [
         "int statfs(const char *path, struct statfs *buf)",
         "int fstatfs(int fd, struct statfs *buf)",
         "int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)",
+        "int ioctl(int d, unsigned long request, void *argp)",
+        "int getifaddrs(struct ifaddrs **ifap)"
         ]
 
 

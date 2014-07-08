@@ -15,6 +15,8 @@ enum wio_type {
 	IO_STATFS,
 	IO_FSTATFS,
 	IO_GETADDRINFO,
+	IO_IOCTL,
+	IO_GETIFADDRS,
 };
 
 struct wire_io_act {
@@ -114,6 +116,18 @@ struct wire_io_act {
             int ret;
             int verrno;
         } getaddrinfo;
+        struct {
+            int d;
+            unsigned long request;
+            void * argp;
+            int ret;
+            int verrno;
+        } ioctl;
+        struct {
+            struct ifaddrs ** ifap;
+            int ret;
+            int verrno;
+        } getifaddrs;
     };
 };
 
@@ -175,6 +189,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_GETADDRINFO:
             act->getaddrinfo.ret = getaddrinfo(act->getaddrinfo.node, act->getaddrinfo.service, act->getaddrinfo.hints, act->getaddrinfo.res);
             act->getaddrinfo.verrno = errno;
+            break;
+        case IO_IOCTL:
+            act->ioctl.ret = ioctl(act->ioctl.d, act->ioctl.request, act->ioctl.argp);
+            act->ioctl.verrno = errno;
+            break;
+        case IO_GETIFADDRS:
+            act->getifaddrs.ret = getifaddrs(act->getifaddrs.ifap);
+            act->getifaddrs.verrno = errno;
             break;
     }
 }
@@ -368,5 +390,31 @@ int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo
     if (act.getaddrinfo.ret < 0)
         errno = act.getaddrinfo.verrno;
     return act.getaddrinfo.ret;
+}
+
+int wio_ioctl(int d, unsigned long request, void *argp)
+{
+    struct wire_io_act act;
+    act.type = IO_IOCTL;
+    act.ioctl.d = d;
+    act.ioctl.request = request;
+    act.ioctl.argp = argp;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.ioctl.ret < 0)
+        errno = act.ioctl.verrno;
+    return act.ioctl.ret;
+}
+
+int wio_getifaddrs(struct ifaddrs **ifap)
+{
+    struct wire_io_act act;
+    act.type = IO_GETIFADDRS;
+    act.getifaddrs.ifap = ifap;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.getifaddrs.ret < 0)
+        errno = act.getifaddrs.verrno;
+    return act.getifaddrs.ret;
 }
 

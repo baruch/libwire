@@ -5,9 +5,11 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/vfs.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <ifaddrs.h>
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
@@ -22,5 +24,7 @@ int wio_fsync(int fd);
 int wio_statfs(const char *path, struct statfs *buf);
 int wio_fstatfs(int fd, struct statfs *buf);
 int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+int wio_ioctl(int d, unsigned long request, void *argp);
+int wio_getifaddrs(struct ifaddrs **ifap);
 
 #endif
