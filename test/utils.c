@@ -27,7 +27,7 @@ void set_reuse(int fd)
 int socket_setup(unsigned short port)
 {
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 1) {
+	if (fd < 0) {
 		perror("Failed to create socket");
 		return -1;
 	}
