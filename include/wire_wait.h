@@ -68,6 +68,13 @@ void wire_wait_stop(wire_wait_t *w);
  */
 void wire_wait_single(wire_wait_t *w);
 
+/** Wait for two events at the same time, returns which waiter was the first to show up.
+ * @param[in] wait1 First waiter
+ * @param[in] wait2 Second waiter
+ * @return 1 when wait1 finished first and 2 when wait2 finished first, -1 if none of them finished (improbable).
+ */
+int wire_wait_two(wire_wait_t *wait1, wire_wait_t *wait2);
+
 /// @}
 
 struct wire_wait_list {

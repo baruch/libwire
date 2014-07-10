@@ -4,23 +4,6 @@
 
 #include <errno.h>
 
-static int wait_for_2(wire_wait_t *wait1, wire_wait_t *wait2)
-{
-	wire_wait_list_t wl;
-
-	wire_wait_list_init(&wl);
-	wire_wait_chain(&wl, wait1);
-	wire_wait_chain(&wl, wait2);
-	wire_list_wait(&wl);
-
-	if (wait1->triggered)
-		return 1;
-	else if (wait2->triggered)
-		return 2;
-	else
-		return -1;
-}
-
 void wire_net_init(wire_net_t *net, int sockfd)
 {
 	wire_fd_mode_init(&net->fd_state, sockfd);
@@ -44,10 +27,8 @@ int wire_net_connect(wire_net_t *net, const struct sockaddr *addr, socklen_t add
 		return -1;
 
 	// Connection is in progress
-	wire_wait_t *tout_wait = wire_timeout_wait_get(&net->tout);
-
 	wire_fd_mode_write(&net->fd_state);
-	wait_for_2(&net->fd_state.wait, tout_wait);
+	wire_timeout_wait(&net->fd_state.wait, &net->tout);
 
 	// We have reached here after a connect or a timeout
 	int error;
@@ -79,8 +60,7 @@ int wire_net_write(wire_net_t *net, const void *buf, size_t count, size_t *psent
 			if (errno == EAGAIN) {
 				// We are waiting for more data and none is present, wait for it but yield the wire
 				wire_fd_mode_write(&net->fd_state);
-				wire_wait_t *tout_wait = wire_timeout_wait_get(&net->tout);
-				ret = wait_for_2(&net->fd_state.wait, tout_wait);
+				ret = wire_timeout_wait(&net->fd_state.wait, &net->tout);
 				if (ret != 1) { // Not the IO returned
 					wire_timeout_wait_stop(&net->tout);
 					goto Exit;
@@ -116,8 +96,7 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 			if (errno == EAGAIN) {
 				// We are waiting for more data and none is prercvd, wait for it but yield the wire
 				wire_fd_mode_read(&net->fd_state);
-				wire_wait_t *tout_wait = wire_timeout_wait_get(&net->tout);
-				ret = wait_for_2(&net->fd_state.wait, tout_wait);
+				ret = wire_timeout_wait(&net->fd_state.wait, &net->tout);
 				if (ret != 1) {// Not the IO returned
 					wire_timeout_wait_stop(&net->tout);
 					goto Exit;

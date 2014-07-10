@@ -57,3 +57,9 @@ void wire_timeout_wait_stop(wire_timeout_t *tout)
 	wire_fd_mode_none(&tout->fd_state);
 	clear_timeout(tout->fd_state.fd);
 }
+
+int wire_timeout_wait(wire_wait_t *wait, wire_timeout_t *tout)
+{
+	wire_wait_t *tout_wait = wire_timeout_wait_get(tout);
+	return wire_wait_two(wait, tout_wait);
+}

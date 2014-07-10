@@ -75,3 +75,20 @@ void wire_wait_single(wire_wait_t *w)
 	wire_wait_chain(&wl, w);
 	wire_list_wait(&wl);
 }
+
+int wire_wait_two(wire_wait_t *wait1, wire_wait_t *wait2)
+{
+	wire_wait_list_t wl;
+
+	wire_wait_list_init(&wl);
+	wire_wait_chain(&wl, wait1);
+	wire_wait_chain(&wl, wait2);
+	wire_list_wait(&wl);
+
+	if (wait1->triggered)
+		return 1;
+	else if (wait2->triggered)
+		return 2;
+	else
+		return -1;
+}

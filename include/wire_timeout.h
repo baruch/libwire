@@ -56,6 +56,13 @@ void wire_timeout_wait_start(wire_timeout_t *out);
  */
 void wire_timeout_wait_stop(wire_timeout_t *out);
 
+/** Wait for a wait event and a timeout, returns which of them returned first.
+ * @param[in] wait The wait object to wait on.
+ * @param[in] tout The timeout object to use for timeout.
+ * @return 1 if the wait object returned first, 2 if the timeout object returned first.
+ */
+int wire_timeout_wait(wire_wait_t *wait, wire_timeout_t *tout);
+
 /// @}
 
 #endif
