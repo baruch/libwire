@@ -8,13 +8,17 @@
 #include <stdarg.h>
 #include <time.h>
 
+struct log_line {
+	struct timespec t;
+	wire_log_level_e level;
+	unsigned str_len;
+	char str[128];
+};
+
 static wire_t stdout_wire;
-static struct timespec str_time;
-static wire_log_level_e str_level;
-static char str[128];
-static unsigned str_len;
 static char stdout_wire_stack[4096];
 static wire_lock_t lock;
+static struct log_line line;
 
 static const char *level_to_str(wire_log_level_e level)
 {
@@ -35,7 +39,7 @@ static void stdout_wire_func(void *arg)
 	UNUSED(arg);
 
 	while (1) {
-		if (str_len) {
+		if (line.str_len) {
 			time_t t;
 			struct tm tm;
 			char tm_str[24];
@@ -44,20 +48,20 @@ static void stdout_wire_func(void *arg)
 			size_t next_str_len;
 			struct iovec iov[3];
 
-			t = str_time.tv_sec;
+			t = line.t.tv_sec;
 			localtime_r(&t, &tm);
 			tm_str_len = strftime(tm_str, sizeof(tm_str), "%Y-%m-%d %H:%M:%S.", &tm);
 
-			next_str_len = snprintf(next_str, sizeof(next_str), "%09lu <%s> ", (long unsigned)str_time.tv_nsec, level_to_str(str_level));
+			next_str_len = snprintf(next_str, sizeof(next_str), "%09lu <%s> ", (long unsigned)line.t.tv_nsec, level_to_str(line.level));
 
 			iov[0].iov_base = tm_str;
 			iov[0].iov_len = tm_str_len;
 			iov[1].iov_base = next_str;
 			iov[1].iov_len = next_str_len;
-			iov[2].iov_base = str;
-			iov[2].iov_len = str_len;
+			iov[2].iov_base = line.str;
+			iov[2].iov_len = line.str_len;
 			wio_writev(1, iov, 3);
-			str_len = 0;
+			line.str_len = 0;
 
 			wire_lock_release(&lock);
 		}
@@ -75,16 +79,16 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 	// Wait until logging is possible
 	wire_lock_take(&lock);
 
-	str_time = t;
-	str_level = level;
+	line.t = t;
+	line.level = level;
 	va_start(ap, fmt);
-	str_len = vsnprintf(str, sizeof(str), fmt, ap);
+	line.str_len = vsnprintf(line.str, sizeof(line.str), fmt, ap);
 	va_end(ap);
 
-	if (str_len > sizeof(str)-1) {
-		str_len = sizeof(str)-1;
+	if (line.str_len > sizeof(line.str)-1) {
+		line.str_len = sizeof(line.str)-1;
 	}
-	str[str_len++] = '\n';
+	line.str[line.str_len++] = '\n';
 
 	wire_resume(&stdout_wire);
 }
