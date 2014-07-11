@@ -38,18 +38,25 @@ static void stdout_wire_func(void *arg)
 		if (str_len) {
 			time_t t;
 			struct tm tm;
-			char tm_str[32];
+			char tm_str[24];
 			size_t tm_str_len;
+			char next_str[24];
+			size_t next_str_len;
+			struct iovec iov[3];
 
 			t = str_time.tv_sec;
 			localtime_r(&t, &tm);
 			tm_str_len = strftime(tm_str, sizeof(tm_str), "%Y-%m-%d %H:%M:%S.", &tm);
-			wio_write(1, tm_str, tm_str_len);
 
-			tm_str_len = snprintf(tm_str, sizeof(tm_str), "%010lu <%s> ", (long unsigned)str_time.tv_nsec, level_to_str(str_level));
-			wio_write(1, tm_str, tm_str_len);
+			next_str_len = snprintf(next_str, sizeof(next_str), "%010lu <%s> ", (long unsigned)str_time.tv_nsec, level_to_str(str_level));
 
-			wio_write(1, str, str_len);
+			iov[0].iov_base = tm_str;
+			iov[0].iov_len = tm_str_len;
+			iov[1].iov_base = next_str;
+			iov[1].iov_len = next_str_len;
+			iov[2].iov_base = str;
+			iov[2].iov_len = str_len;
+			wio_writev(1, iov, 3);
 			str_len = 0;
 
 			wire_lock_release(&lock);
