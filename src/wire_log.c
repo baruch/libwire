@@ -48,7 +48,7 @@ static void stdout_wire_func(void *arg)
 			localtime_r(&t, &tm);
 			tm_str_len = strftime(tm_str, sizeof(tm_str), "%Y-%m-%d %H:%M:%S.", &tm);
 
-			next_str_len = snprintf(next_str, sizeof(next_str), "%010lu <%s> ", (long unsigned)str_time.tv_nsec, level_to_str(str_level));
+			next_str_len = snprintf(next_str, sizeof(next_str), "%09lu <%s> ", (long unsigned)str_time.tv_nsec, level_to_str(str_level));
 
 			iov[0].iov_base = tm_str;
 			iov[0].iov_len = tm_str_len;
