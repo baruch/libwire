@@ -1,6 +1,7 @@
 #include "wire_log.h"
 #include "wire.h"
 #include "wire_io.h"
+#include "wire_lock.h"
 
 #include <syslog.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@ static wire_log_level_e str_level;
 static char str[128];
 static unsigned str_len;
 static char stdout_wire_stack[4096];
+static wire_lock_t lock;
 
 static const char *level_to_str(wire_log_level_e level)
 {
@@ -49,6 +51,8 @@ static void stdout_wire_func(void *arg)
 
 			wio_write(1, str, str_len);
 			str_len = 0;
+
+			wire_lock_release(&lock);
 		}
 		wire_suspend();
 	}
@@ -61,8 +65,8 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 
 	clock_gettime(CLOCK_REALTIME, &t);
 
-	while (str_len)
-		wire_yield();
+	// Wait until logging is possible
+	wire_lock_take(&lock);
 
 	str_time = t;
 	str_level = level;
@@ -80,6 +84,7 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 
 void wire_log_init_stdout(void)
 {
+	wire_lock_init(&lock);
 	wire_init(&stdout_wire, "stdout logger", stdout_wire_func, NULL, stdout_wire_stack, sizeof(stdout_wire_stack));
 	wire_log = wire_log_stdout;
 }
