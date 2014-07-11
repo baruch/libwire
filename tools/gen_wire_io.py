@@ -9,7 +9,8 @@ includes = [
         "fcntl.h",
         "unistd.h",
         "netdb.h",
-        "ifaddrs.h"
+        "ifaddrs.h",
+        "sys/uio.h",
         ]
 
 syscalls = [
@@ -28,7 +29,11 @@ syscalls = [
         "int fstatfs(int fd, struct statfs *buf)",
         "int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)",
         "int ioctl(int d, unsigned long request, void *argp)",
-        "int getifaddrs(struct ifaddrs **ifap)"
+        "int getifaddrs(struct ifaddrs **ifap)",
+        "ssize_t readv(int fd, const struct iovec *iov, int iovcnt)",
+        "ssize_t writev(int fd, const struct iovec *iov, int iovcnt)",
+        "ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)",
+        "ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)",
         ]
 
 

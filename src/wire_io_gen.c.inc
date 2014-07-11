@@ -17,6 +17,10 @@ enum wio_type {
 	IO_GETADDRINFO,
 	IO_IOCTL,
 	IO_GETIFADDRS,
+	IO_READV,
+	IO_WRITEV,
+	IO_PREADV,
+	IO_PWRITEV,
 };
 
 struct wire_io_act {
@@ -128,6 +132,36 @@ struct wire_io_act {
             int ret;
             int verrno;
         } getifaddrs;
+        struct {
+            int fd;
+            const struct iovec * iov;
+            int iovcnt;
+            ssize_t ret;
+            int verrno;
+        } readv;
+        struct {
+            int fd;
+            const struct iovec * iov;
+            int iovcnt;
+            ssize_t ret;
+            int verrno;
+        } writev;
+        struct {
+            int fd;
+            const struct iovec * iov;
+            int iovcnt;
+            off_t offset;
+            ssize_t ret;
+            int verrno;
+        } preadv;
+        struct {
+            int fd;
+            const struct iovec * iov;
+            int iovcnt;
+            off_t offset;
+            ssize_t ret;
+            int verrno;
+        } pwritev;
     };
 };
 
@@ -197,6 +231,22 @@ static void perform_action(struct wire_io_act *act)
         case IO_GETIFADDRS:
             act->getifaddrs.ret = getifaddrs(act->getifaddrs.ifap);
             act->getifaddrs.verrno = errno;
+            break;
+        case IO_READV:
+            act->readv.ret = readv(act->readv.fd, act->readv.iov, act->readv.iovcnt);
+            act->readv.verrno = errno;
+            break;
+        case IO_WRITEV:
+            act->writev.ret = writev(act->writev.fd, act->writev.iov, act->writev.iovcnt);
+            act->writev.verrno = errno;
+            break;
+        case IO_PREADV:
+            act->preadv.ret = preadv(act->preadv.fd, act->preadv.iov, act->preadv.iovcnt, act->preadv.offset);
+            act->preadv.verrno = errno;
+            break;
+        case IO_PWRITEV:
+            act->pwritev.ret = pwritev(act->pwritev.fd, act->pwritev.iov, act->pwritev.iovcnt, act->pwritev.offset);
+            act->pwritev.verrno = errno;
             break;
     }
 }
@@ -416,5 +466,63 @@ int wio_getifaddrs(struct ifaddrs **ifap)
     if (act.getifaddrs.ret < 0)
         errno = act.getifaddrs.verrno;
     return act.getifaddrs.ret;
+}
+
+ssize_t wio_readv(int fd, const struct iovec *iov, int iovcnt)
+{
+    struct wire_io_act act;
+    act.type = IO_READV;
+    act.readv.fd = fd;
+    act.readv.iov = iov;
+    act.readv.iovcnt = iovcnt;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.readv.ret < 0)
+        errno = act.readv.verrno;
+    return act.readv.ret;
+}
+
+ssize_t wio_writev(int fd, const struct iovec *iov, int iovcnt)
+{
+    struct wire_io_act act;
+    act.type = IO_WRITEV;
+    act.writev.fd = fd;
+    act.writev.iov = iov;
+    act.writev.iovcnt = iovcnt;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.writev.ret < 0)
+        errno = act.writev.verrno;
+    return act.writev.ret;
+}
+
+ssize_t wio_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    struct wire_io_act act;
+    act.type = IO_PREADV;
+    act.preadv.fd = fd;
+    act.preadv.iov = iov;
+    act.preadv.iovcnt = iovcnt;
+    act.preadv.offset = offset;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.preadv.ret < 0)
+        errno = act.preadv.verrno;
+    return act.preadv.ret;
+}
+
+ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    struct wire_io_act act;
+    act.type = IO_PWRITEV;
+    act.pwritev.fd = fd;
+    act.pwritev.iov = iov;
+    act.pwritev.iovcnt = iovcnt;
+    act.pwritev.offset = offset;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    if (act.pwritev.ret < 0)
+        errno = act.pwritev.verrno;
+    return act.pwritev.ret;
 }
 
