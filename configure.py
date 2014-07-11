@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 lib_srcs = [
-        'wire', 'wire_fd', 'wire_timeout', 'wire_net', 'wire_pool', 'wire_stack', 'wire_io', 'wire_log', 'http_parser', 'wire_channel', 'wire_wait', 'wire_lock', 'coro'
+        'wire', 'wire_fd', 'wire_timeout', 'wire_net', 'wire_pool', 'wire_stack', 'wire_io', 'wire_log', 'http_parser', 'wire_channel', 'wire_wait', 'wire_lock', 'wire_semaphore', 'coro'
 ]
 
 test_srcs = {
