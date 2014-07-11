@@ -10,6 +10,7 @@ locks
 asyncio
 pool
 wait
+log_stdout
 libwire.a
 
 test_recurser.out
