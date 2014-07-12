@@ -30,6 +30,15 @@ typedef struct wire_net {
  */
 void wire_net_init(wire_net_t *net, int sockfd);
 
+/** Initialize a network socket and also connect to a TCP service. This wraps around hostname resolving as well as connecting to the server.
+ * @param[in]net The network socket to initialize.
+ * @param[in] hostname the Hostname to connect to (string).
+ * @param[in] servicename The service to connect to (string, name or number).
+ * @param[in] timeout_msec Time in msecs to allow for the connection, the tout object in the wire_net_t will not be reset so the timeout can be global or reset by the user after connection.
+ * @return 0 for success and -1 for error.
+ */
+int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec);
+
 /** Close a network socket.
  * @param[in] net The network socket to close.
  */

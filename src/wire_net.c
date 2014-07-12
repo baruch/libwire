@@ -3,6 +3,7 @@
 #include "wire_io.h"
 
 #include <errno.h>
+#include <memory.h>
 
 void wire_net_init(wire_net_t *net, int sockfd)
 {
@@ -15,6 +16,48 @@ void wire_net_close(wire_net_t *net)
 	wire_timeout_stop(&net->tout);
 	wire_fd_mode_none(&net->fd_state);
 	wio_close(net->fd_state.fd);
+}
+
+int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec)
+{
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	int ret;
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
+	hints.ai_flags = 0;
+	hints.ai_protocol = 0;          /* Any protocol */
+	hints.ai_canonname = NULL;
+	hints.ai_addr = NULL;
+	hints.ai_next = NULL;
+
+	ret = wio_getaddrinfo(hostname, servicename, &hints, &result);
+	if (ret != 0)
+		return -1;
+
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		int sfd = socket(rp->ai_family, rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC, rp->ai_protocol);
+		if (sfd == -1)
+			continue;
+
+		wire_net_init(net, sfd);
+		wire_timeout_reset(&net->tout, timeout_msec);
+
+		ret = wire_net_connect(net, rp->ai_addr, rp->ai_addrlen);
+		if (ret == 0)
+			break;                  /* Success */
+
+		wire_net_close(net);
+	}
+
+	freeaddrinfo(result);           /* No longer needed */
+
+	if (rp == NULL) // No address succeeded
+		return -1;
+
+	return 0;
 }
 
 int wire_net_connect(wire_net_t *net, const struct sockaddr *addr, socklen_t addrlen)
