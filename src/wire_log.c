@@ -10,6 +10,20 @@
 
 #define NUM_LINES 16
 
+static void null_wire_log(wire_log_level_e level, const char *fmt, ...)
+{
+	UNUSED(level);
+
+	va_list ap;
+
+	// NOTE: This will block the process!
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
+void (*wire_log)(wire_log_level_e level, const char *fmt, ...) = null_wire_log;
+
 struct log_line {
 	struct timespec t;
 	wire_log_level_e level;
