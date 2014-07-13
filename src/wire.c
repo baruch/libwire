@@ -7,6 +7,10 @@
 #include <memory.h>
 #include <string.h>
 
+#ifdef WIRE_SWITCH_DEBUG
+#include <unistd.h>
+#endif
+
 static wire_thread_t *g_wire_thread;
 
 static wire_t *_wire_get_next(void)
@@ -31,8 +35,14 @@ static void _wire_switch_to(wire_t *wire)
 	wire_t *from = wire_get_current();
 	g_wire_thread->running_wire = wire;
 
-	if (wire != from)
+	if (wire != from) {
+#ifdef WIRE_SWITCH_DEBUG
+		write(2, "Switching to wire ", strlen("Switching to wire "));
+		write(2, wire->name, strlen(wire->name));
+		write(2, "\n", 1);
+#endif
 		coro_transfer(&from->ctx, &wire->ctx);
+	}
 }
 
 static void wire_schedule(void)
