@@ -155,9 +155,9 @@ static void
 waittest(Test *ts)
 {
     Test *t;
-    int pid, stat;
+    int pid, status;
 
-    pid = wait3(&stat, 0, 0);
+    pid = wait3(&status, 0, 0);
     if (pid == -1) {
         die(3, errno, "wait");
     }
@@ -165,7 +165,7 @@ waittest(Test *ts)
 
     for (t=ts; t->f; t++) {
         if (t->pid == pid) {
-            t->status = stat;
+            t->status = status;
             if (!t->status) {
                 putchar('.');
             } else if (failed(t->status)) {
