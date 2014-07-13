@@ -139,7 +139,7 @@ for fname in glob.glob('test/ct_*.c'):
     test_objs += cc(fname, src, variables=[('extracflags', '-Wno-missing-prototypes')])
 ct_gen_src = n.build('test/ct/ct_gen.c', 'ct_gen', test_objs, implicit=['test/ct/gen'])
 test_objs += cc('ct/ct_gen', btest)
-test_objs += cc('ct/ct', btest)
+test_objs += cc('ct/ct', btest, variables=[('cflags', '')])
 test_exec += n.build('ct', 'link', test_objs, variables=[('libs', lib)])
 all_targets += test_exec
 n.newline()
