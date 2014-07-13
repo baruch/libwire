@@ -69,7 +69,7 @@ n.variable('ldflags', ' '.join(shell_escape(flag) for flag in ldflags))
 n.newline()
 
 n.rule('c',
-        command='$cc -MMD -MT $out -MF $out.d $cflags -c $in -o $out',
+        command='$cc -MMD -MT $out -MF $out.d $cflags $extracflags -c $in -o $out',
         depfile='$out.d',
         deps='gcc',
         description='CC $out'
@@ -93,6 +93,11 @@ n.rule('gen_wire_io',
         description='GEN_WIRE_IO $out')
 n.newline()
 
+n.rule('ct_gen',
+        command='test/ct/gen $in > $out',
+        description='CT_GEN %out')
+n.newline()
+
 def src(filename):
         return os.path.join('src', filename)
 def btest(filename):
@@ -100,7 +105,10 @@ def btest(filename):
 def built(filename):
         return os.path.join('built', filename)
 def cc(filename, src, **kwargs):
-        return n.build(built(src(filename)) + '.o', 'c', src(filename) + '.c', **kwargs)
+        if filename.endswith('.c'):
+                return n.build(built(filename)[:-2] + '.o', 'c', filename, **kwargs)
+        else:
+                return n.build(built(src(filename)) + '.o', 'c', src(filename) + '.c', **kwargs)
 
 all_targets = []
 
@@ -124,6 +132,16 @@ for test in test_srcs.keys():
                         objs += obj
         test_exec += n.build(test, 'link', objs, implicit=lib, variables=[('libs', lib)])
         all_targets += test_exec
+n.newline()
+
+test_objs = []
+for fname in glob.glob('test/ct_*.c'):
+    test_objs += cc(fname, src, variables=[('extracflags', '-Wno-missing-prototypes')])
+ct_gen_src = n.build('test/ct/ct_gen.c', 'ct_gen', test_objs, implicit=['test/ct/gen'])
+test_objs += cc('ct/ct_gen', btest)
+test_objs += cc('ct/ct', btest)
+test_exec += n.build('ct', 'link', test_objs, variables=[('libs', lib)])
+all_targets += test_exec
 n.newline()
 
 n.rule('configure',
