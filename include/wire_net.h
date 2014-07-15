@@ -35,9 +35,11 @@ void wire_net_init(wire_net_t *net, int sockfd);
  * @param[in] hostname the Hostname to connect to (string).
  * @param[in] servicename The service to connect to (string, name or number).
  * @param[in] timeout_msec Time in msecs to allow for the connection, the tout object in the wire_net_t will not be reset so the timeout can be global or reset by the user after connection.
+ * @param[out] sockaddr The remote address to which we connected.
+ * @param[inout] sockaddr_len In: The space to save the sockaddr len, Out: 0 if the space is insufficient, the size if space was sufficient.
  * @return 0 for success and -1 for error.
  */
-int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec);
+int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec, struct sockaddr *sockaddr, socklen_t *sockaddr_len);
 
 /** Close a network socket.
  * @param[in] net The network socket to close.

@@ -18,7 +18,7 @@ void wire_net_close(wire_net_t *net)
 	wio_close(net->fd_state.fd);
 }
 
-int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec)
+int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const char *servicename, int timeout_msec, struct sockaddr *sockaddr, socklen_t *sockaddr_len)
 {
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
@@ -46,8 +46,17 @@ int wire_net_init_tcp_connected(wire_net_t *net, const char *hostname, const cha
 		wire_timeout_reset(&net->tout, timeout_msec);
 
 		ret = wire_net_connect(net, rp->ai_addr, rp->ai_addrlen);
-		if (ret == 0)
+		if (ret == 0) {
+			if (sockaddr && sockaddr_len) {
+				if (*sockaddr_len >= rp->ai_addrlen) {
+					memcpy(sockaddr, rp->ai_addr, rp->ai_addrlen);
+					*sockaddr_len = rp->ai_addrlen;
+				} else {
+					*sockaddr_len = 0;
+				}
+			}
 			break;                  /* Success */
+		}
 
 		wire_net_close(net);
 	}
