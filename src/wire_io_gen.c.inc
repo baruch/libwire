@@ -21,6 +21,8 @@ enum wio_type {
 	IO_WRITEV,
 	IO_PREADV,
 	IO_PWRITEV,
+	IO_MMAP,
+	IO_MUNMAP,
 };
 
 struct wire_io_act {
@@ -162,6 +164,22 @@ struct wire_io_act {
             ssize_t ret;
             int verrno;
         } pwritev;
+        struct {
+            void * addr;
+            size_t length;
+            int protc;
+            int flags;
+            int fd;
+            off_t offset;
+            void * ret;
+            int verrno;
+        } mmap;
+        struct {
+            void * addr;
+            size_t length;
+            int ret;
+            int verrno;
+        } munmap;
     };
 };
 
@@ -248,6 +266,14 @@ static void perform_action(struct wire_io_act *act)
             act->pwritev.ret = pwritev(act->pwritev.fd, act->pwritev.iov, act->pwritev.iovcnt, act->pwritev.offset);
             act->pwritev.verrno = errno;
             break;
+        case IO_MMAP:
+            act->mmap.ret = mmap(act->mmap.addr, act->mmap.length, act->mmap.protc, act->mmap.flags, act->mmap.fd, act->mmap.offset);
+            act->mmap.verrno = errno;
+            break;
+        case IO_MUNMAP:
+            act->munmap.ret = munmap(act->munmap.addr, act->munmap.length);
+            act->munmap.verrno = errno;
+            break;
     }
 }
 
@@ -260,8 +286,7 @@ int wio_open(const char *pathname, int flags, mode_t mode)
     act.open.mode = mode;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.open.ret < 0)
-        errno = act.open.verrno;
+    errno = act.open.verrno;
     return act.open.ret;
 }
 
@@ -272,8 +297,7 @@ int wio_close(int fd)
     act.close.fd = fd;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.close.ret < 0)
-        errno = act.close.verrno;
+    errno = act.close.verrno;
     return act.close.ret;
 }
 
@@ -287,8 +311,7 @@ ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset)
     act.pread.offset = offset;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.pread.ret < 0)
-        errno = act.pread.verrno;
+    errno = act.pread.verrno;
     return act.pread.ret;
 }
 
@@ -302,8 +325,7 @@ ssize_t wio_pwrite(int fd, const void *buf, size_t count, off_t offset)
     act.pwrite.offset = offset;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.pwrite.ret < 0)
-        errno = act.pwrite.verrno;
+    errno = act.pwrite.verrno;
     return act.pwrite.ret;
 }
 
@@ -316,8 +338,7 @@ ssize_t wio_read(int fd, void *buf, size_t count)
     act.read.count = count;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.read.ret < 0)
-        errno = act.read.verrno;
+    errno = act.read.verrno;
     return act.read.ret;
 }
 
@@ -330,8 +351,7 @@ ssize_t wio_write(int fd, const void *buf, size_t count)
     act.write.count = count;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.write.ret < 0)
-        errno = act.write.verrno;
+    errno = act.write.verrno;
     return act.write.ret;
 }
 
@@ -343,8 +363,7 @@ int wio_fstat(int fd, struct stat *buf)
     act.fstat.buf = buf;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.fstat.ret < 0)
-        errno = act.fstat.verrno;
+    errno = act.fstat.verrno;
     return act.fstat.ret;
 }
 
@@ -356,8 +375,7 @@ int wio_stat(const char *path, struct stat *buf)
     act.stat.buf = buf;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.stat.ret < 0)
-        errno = act.stat.verrno;
+    errno = act.stat.verrno;
     return act.stat.ret;
 }
 
@@ -369,8 +387,7 @@ int wio_ftruncate(int fd, off_t length)
     act.ftruncate.length = length;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.ftruncate.ret < 0)
-        errno = act.ftruncate.verrno;
+    errno = act.ftruncate.verrno;
     return act.ftruncate.ret;
 }
 
@@ -384,8 +401,7 @@ int wio_fallocate(int fd, int mode, off_t offset, off_t len)
     act.fallocate.len = len;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.fallocate.ret < 0)
-        errno = act.fallocate.verrno;
+    errno = act.fallocate.verrno;
     return act.fallocate.ret;
 }
 
@@ -396,8 +412,7 @@ int wio_fsync(int fd)
     act.fsync.fd = fd;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.fsync.ret < 0)
-        errno = act.fsync.verrno;
+    errno = act.fsync.verrno;
     return act.fsync.ret;
 }
 
@@ -409,8 +424,7 @@ int wio_statfs(const char *path, struct statfs *buf)
     act.statfs.buf = buf;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.statfs.ret < 0)
-        errno = act.statfs.verrno;
+    errno = act.statfs.verrno;
     return act.statfs.ret;
 }
 
@@ -422,8 +436,7 @@ int wio_fstatfs(int fd, struct statfs *buf)
     act.fstatfs.buf = buf;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.fstatfs.ret < 0)
-        errno = act.fstatfs.verrno;
+    errno = act.fstatfs.verrno;
     return act.fstatfs.ret;
 }
 
@@ -437,8 +450,7 @@ int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo
     act.getaddrinfo.res = res;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.getaddrinfo.ret < 0)
-        errno = act.getaddrinfo.verrno;
+    errno = act.getaddrinfo.verrno;
     return act.getaddrinfo.ret;
 }
 
@@ -451,8 +463,7 @@ int wio_ioctl(int d, unsigned long request, void *argp)
     act.ioctl.argp = argp;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.ioctl.ret < 0)
-        errno = act.ioctl.verrno;
+    errno = act.ioctl.verrno;
     return act.ioctl.ret;
 }
 
@@ -463,8 +474,7 @@ int wio_getifaddrs(struct ifaddrs **ifap)
     act.getifaddrs.ifap = ifap;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.getifaddrs.ret < 0)
-        errno = act.getifaddrs.verrno;
+    errno = act.getifaddrs.verrno;
     return act.getifaddrs.ret;
 }
 
@@ -477,8 +487,7 @@ ssize_t wio_readv(int fd, const struct iovec *iov, int iovcnt)
     act.readv.iovcnt = iovcnt;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.readv.ret < 0)
-        errno = act.readv.verrno;
+    errno = act.readv.verrno;
     return act.readv.ret;
 }
 
@@ -491,8 +500,7 @@ ssize_t wio_writev(int fd, const struct iovec *iov, int iovcnt)
     act.writev.iovcnt = iovcnt;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.writev.ret < 0)
-        errno = act.writev.verrno;
+    errno = act.writev.verrno;
     return act.writev.ret;
 }
 
@@ -506,8 +514,7 @@ ssize_t wio_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
     act.preadv.offset = offset;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.preadv.ret < 0)
-        errno = act.preadv.verrno;
+    errno = act.preadv.verrno;
     return act.preadv.ret;
 }
 
@@ -521,8 +528,35 @@ ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
     act.pwritev.offset = offset;
     wakeup_fd_listener();
     submit_action(&wire_io, &act.common);
-    if (act.pwritev.ret < 0)
-        errno = act.pwritev.verrno;
+    errno = act.pwritev.verrno;
     return act.pwritev.ret;
+}
+
+void * wio_mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+{
+    struct wire_io_act act;
+    act.type = IO_MMAP;
+    act.mmap.addr = addr;
+    act.mmap.length = length;
+    act.mmap.protc = protc;
+    act.mmap.flags = flags;
+    act.mmap.fd = fd;
+    act.mmap.offset = offset;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.mmap.verrno;
+    return act.mmap.ret;
+}
+
+int wio_munmap(void *addr, size_t length)
+{
+    struct wire_io_act act;
+    act.type = IO_MUNMAP;
+    act.munmap.addr = addr;
+    act.munmap.length = length;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.munmap.verrno;
+    return act.munmap.ret;
 }
 

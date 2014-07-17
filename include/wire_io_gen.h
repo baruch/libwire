@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 #include <sys/uio.h>
+#include <sys/mman.h>
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
@@ -31,5 +32,7 @@ ssize_t wio_readv(int fd, const struct iovec *iov, int iovcnt);
 ssize_t wio_writev(int fd, const struct iovec *iov, int iovcnt);
 ssize_t wio_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+void * wio_mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset);
+int wio_munmap(void *addr, size_t length);
 
 #endif

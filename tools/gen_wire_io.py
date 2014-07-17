@@ -11,6 +11,7 @@ includes = [
         "netdb.h",
         "ifaddrs.h",
         "sys/uio.h",
+        "sys/mman.h",
         ]
 
 syscalls = [
@@ -34,6 +35,8 @@ syscalls = [
         "ssize_t writev(int fd, const struct iovec *iov, int iovcnt)",
         "ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)",
         "ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)",
+        "void *mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)",
+        "int munmap(void *addr, size_t length)",
         ]
 
 
@@ -137,8 +140,7 @@ else:
             print '    act.%s.%s = %s;' % (decl[1], arg[1], arg[1])
         print '    wakeup_fd_listener();'
         print '    submit_action(&wire_io, &act.common);'
-        print '    if (act.%s.ret < 0)' % decl[1]
-        print '        errno = act.%s.verrno;' % decl[1]
+        print '    errno = act.%s.verrno;' % decl[1]
         print '    return act.%s.ret;' % decl[1]
         print '}'
         print
