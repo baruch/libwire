@@ -26,6 +26,7 @@ int wio_fsync(int fd);
 int wio_statfs(const char *path, struct statfs *buf);
 int wio_fstatfs(int fd, struct statfs *buf);
 int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+int wio_getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen, int flags);
 int wio_ioctl(int d, unsigned long request, void *argp);
 int wio_getifaddrs(struct ifaddrs **ifap);
 ssize_t wio_readv(int fd, const struct iovec *iov, int iovcnt);

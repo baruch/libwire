@@ -15,6 +15,7 @@ enum wio_type {
 	IO_STATFS,
 	IO_FSTATFS,
 	IO_GETADDRINFO,
+	IO_GETNAMEINFO,
 	IO_IOCTL,
 	IO_GETIFADDRS,
 	IO_READV,
@@ -122,6 +123,17 @@ struct wire_io_act {
             int ret;
             int verrno;
         } getaddrinfo;
+        struct {
+            const struct sockaddr * sa;
+            socklen_t salen;
+            char * host;
+            size_t hostlen;
+            char * serv;
+            size_t servlen;
+            int flags;
+            int ret;
+            int verrno;
+        } getnameinfo;
         struct {
             int d;
             unsigned long request;
@@ -241,6 +253,10 @@ static void perform_action(struct wire_io_act *act)
         case IO_GETADDRINFO:
             act->getaddrinfo.ret = getaddrinfo(act->getaddrinfo.node, act->getaddrinfo.service, act->getaddrinfo.hints, act->getaddrinfo.res);
             act->getaddrinfo.verrno = errno;
+            break;
+        case IO_GETNAMEINFO:
+            act->getnameinfo.ret = getnameinfo(act->getnameinfo.sa, act->getnameinfo.salen, act->getnameinfo.host, act->getnameinfo.hostlen, act->getnameinfo.serv, act->getnameinfo.servlen, act->getnameinfo.flags);
+            act->getnameinfo.verrno = errno;
             break;
         case IO_IOCTL:
             act->ioctl.ret = ioctl(act->ioctl.d, act->ioctl.request, act->ioctl.argp);
@@ -452,6 +468,23 @@ int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo
     submit_action(&wire_io, &act.common);
     errno = act.getaddrinfo.verrno;
     return act.getaddrinfo.ret;
+}
+
+int wio_getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen, int flags)
+{
+    struct wire_io_act act;
+    act.type = IO_GETNAMEINFO;
+    act.getnameinfo.sa = sa;
+    act.getnameinfo.salen = salen;
+    act.getnameinfo.host = host;
+    act.getnameinfo.hostlen = hostlen;
+    act.getnameinfo.serv = serv;
+    act.getnameinfo.servlen = servlen;
+    act.getnameinfo.flags = flags;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.getnameinfo.verrno;
+    return act.getnameinfo.ret;
 }
 
 int wio_ioctl(int d, unsigned long request, void *argp)
