@@ -28,6 +28,7 @@ enum wio_type {
 	IO_FDOPENDIR,
 	IO_CLOSEDIR,
 	IO_READDIR_R,
+	IO_READ_FILE_CONTENT,
 };
 
 struct wire_io_act {
@@ -218,6 +219,13 @@ struct wire_io_act {
             int ret;
             int verrno;
         } readdir_r;
+        struct {
+            const char * filename;
+            char * buf;
+            size_t bufsz;
+            int ret;
+            int verrno;
+        } read_file_content;
     };
 };
 
@@ -331,6 +339,10 @@ static void perform_action(struct wire_io_act *act)
         case IO_READDIR_R:
             act->readdir_r.ret = readdir_r(act->readdir_r.dirp, act->readdir_r.entry, act->readdir_r.result);
             act->readdir_r.verrno = errno;
+            break;
+        case IO_READ_FILE_CONTENT:
+            act->read_file_content.ret = read_file_content(act->read_file_content.filename, act->read_file_content.buf, act->read_file_content.bufsz);
+            act->read_file_content.verrno = errno;
             break;
     }
 }
@@ -679,5 +691,18 @@ int wio_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
     submit_action(&wire_io, &act.common);
     errno = act.readdir_r.verrno;
     return act.readdir_r.ret;
+}
+
+int wio_read_file_content(const char *filename, char *buf, size_t bufsz)
+{
+    struct wire_io_act act;
+    act.type = IO_READ_FILE_CONTENT;
+    act.read_file_content.filename = filename;
+    act.read_file_content.buf = buf;
+    act.read_file_content.bufsz = bufsz;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.read_file_content.verrno;
+    return act.read_file_content.ret;
 }
 

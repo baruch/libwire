@@ -60,6 +60,25 @@ static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
 	wire_list_wait(&wait_list);
 }
 
+static int read_file_content(const char *filename, char *buf, size_t bufsz)
+{
+	int fd;
+	int ret;
+	int save_errno;
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return -1;
+
+	ret = read(fd, buf, bufsz);
+	save_errno = errno;
+
+	close(fd);
+
+	errno = save_errno;
+	return ret;
+}
+
 #include "wire_io_gen.c.inc"
 
 static inline void set_nonblock(int fd)
@@ -200,4 +219,3 @@ void wire_io_init(int num_threads)
 		pthread_create(&th, NULL, wire_io_thread, &wire_io);
 	}
 }
-
