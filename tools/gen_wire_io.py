@@ -12,6 +12,7 @@ includes = [
         "ifaddrs.h",
         "sys/uio.h",
         "sys/mman.h",
+        "dirent.h",
         ]
 
 syscalls = [
@@ -38,6 +39,10 @@ syscalls = [
         "ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)",
         "void *mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)",
         "int munmap(void *addr, size_t length)",
+        "DIR *opendir(const char *name)",
+        "DIR *fdopendir(int fd)",
+        "int closedir(DIR *dirp)",
+        "int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)",
         ]
 
 
@@ -55,8 +60,8 @@ if gen_header_file and gen_c_file:
     print 'Must choose only one of "c" or "h"'
     sys.exit(2)
 
-decl_re = re.compile(r'^([a-z_* 0-9]+[* ])([a-z0-9_]+)\((.*)\)$')
-arg_re = re.compile(r'^ ?([a-z_* 0-9]+[* ])([a-z0-9_]+) ?$')
+decl_re = re.compile(r'^([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)\((.*)\)$')
+arg_re = re.compile(r'^ ?([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+) ?$')
 
 def strip_list(l):
     if type(l) == str or type(l) == unicode:

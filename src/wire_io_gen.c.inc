@@ -24,6 +24,10 @@ enum wio_type {
 	IO_PWRITEV,
 	IO_MMAP,
 	IO_MUNMAP,
+	IO_OPENDIR,
+	IO_FDOPENDIR,
+	IO_CLOSEDIR,
+	IO_READDIR_R,
 };
 
 struct wire_io_act {
@@ -192,6 +196,28 @@ struct wire_io_act {
             int ret;
             int verrno;
         } munmap;
+        struct {
+            const char * name;
+            DIR * ret;
+            int verrno;
+        } opendir;
+        struct {
+            int fd;
+            DIR * ret;
+            int verrno;
+        } fdopendir;
+        struct {
+            DIR * dirp;
+            int ret;
+            int verrno;
+        } closedir;
+        struct {
+            DIR * dirp;
+            struct dirent * entry;
+            struct dirent ** result;
+            int ret;
+            int verrno;
+        } readdir_r;
     };
 };
 
@@ -289,6 +315,22 @@ static void perform_action(struct wire_io_act *act)
         case IO_MUNMAP:
             act->munmap.ret = munmap(act->munmap.addr, act->munmap.length);
             act->munmap.verrno = errno;
+            break;
+        case IO_OPENDIR:
+            act->opendir.ret = opendir(act->opendir.name);
+            act->opendir.verrno = errno;
+            break;
+        case IO_FDOPENDIR:
+            act->fdopendir.ret = fdopendir(act->fdopendir.fd);
+            act->fdopendir.verrno = errno;
+            break;
+        case IO_CLOSEDIR:
+            act->closedir.ret = closedir(act->closedir.dirp);
+            act->closedir.verrno = errno;
+            break;
+        case IO_READDIR_R:
+            act->readdir_r.ret = readdir_r(act->readdir_r.dirp, act->readdir_r.entry, act->readdir_r.result);
+            act->readdir_r.verrno = errno;
             break;
     }
 }
@@ -591,5 +633,51 @@ int wio_munmap(void *addr, size_t length)
     submit_action(&wire_io, &act.common);
     errno = act.munmap.verrno;
     return act.munmap.ret;
+}
+
+DIR * wio_opendir(const char *name)
+{
+    struct wire_io_act act;
+    act.type = IO_OPENDIR;
+    act.opendir.name = name;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.opendir.verrno;
+    return act.opendir.ret;
+}
+
+DIR * wio_fdopendir(int fd)
+{
+    struct wire_io_act act;
+    act.type = IO_FDOPENDIR;
+    act.fdopendir.fd = fd;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.fdopendir.verrno;
+    return act.fdopendir.ret;
+}
+
+int wio_closedir(DIR *dirp)
+{
+    struct wire_io_act act;
+    act.type = IO_CLOSEDIR;
+    act.closedir.dirp = dirp;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.closedir.verrno;
+    return act.closedir.ret;
+}
+
+int wio_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
+{
+    struct wire_io_act act;
+    act.type = IO_READDIR_R;
+    act.readdir_r.dirp = dirp;
+    act.readdir_r.entry = entry;
+    act.readdir_r.result = result;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.readdir_r.verrno;
+    return act.readdir_r.ret;
 }
 

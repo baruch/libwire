@@ -12,6 +12,7 @@
 #include <ifaddrs.h>
 #include <sys/uio.h>
 #include <sys/mman.h>
+#include <dirent.h>
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
@@ -35,5 +36,9 @@ ssize_t wio_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 void * wio_mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset);
 int wio_munmap(void *addr, size_t length);
+DIR * wio_opendir(const char *name);
+DIR * wio_fdopendir(int fd);
+int wio_closedir(DIR *dirp);
+int wio_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result);
 
 #endif
