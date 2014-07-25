@@ -57,6 +57,7 @@ static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
 	pthread_cond_signal(&wio->cond);
 
 	// Wait for the action to complete
+	wakeup_fd_listener();
 	wire_list_wait(&wait_list);
 }
 

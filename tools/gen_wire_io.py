@@ -157,7 +157,6 @@ else:
         print '    act.type = %s;' % enum_name(decl)
         for arg in decl[3]:
             print '    act.%s.%s = %s;' % (decl[1], arg[1], arg[1])
-        print '    wakeup_fd_listener();'
         print '    submit_action(&wire_io, &act.common);'
         if decl[0] != 'void':
             print '    errno = act.%s.verrno;' % decl[1]
