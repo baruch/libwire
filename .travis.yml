@@ -7,7 +7,7 @@ before_install:
 
 install: sudo apt-get install ninja-build
 
-script: gcc -v && ./configure.py && ninja -v && ./base && ./waiters && ./channel && ./locks && ./pool && ./asyncio && ./bench && ./test_recurser && ./wait && ./log_stdout && ./ct
+script: gcc -v && ./configure && ninja -v && ./base && ./waiters && ./channel && ./locks && ./pool && ./asyncio && ./bench && ./test_recurser && ./wait && ./log_stdout && ./ct
 
 compiler:
   - gcc
