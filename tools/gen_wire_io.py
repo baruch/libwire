@@ -13,6 +13,11 @@ includes = [
         "sys/uio.h",
         "sys/mman.h",
         "dirent.h",
+        "glob.h",
+        ]
+
+typedefs = [
+        "typedef int (*glob_errfunc_t)(const char *epath, int eerrno)",
         ]
 
 syscalls = [
@@ -44,6 +49,8 @@ syscalls = [
         "int closedir(DIR *dirp)",
         "int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)",
         "int read_file_content(const char *filename, char *buf, size_t bufsz)",
+        "int glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)",
+        "void globfree(glob_t *pglob)",
         ]
 
 import re
@@ -100,6 +107,8 @@ if gen_header_file:
     print
     for inc in includes:
         print '#include <%s>' % inc
+    for typedef in typedefs:
+        print typedef, ";"
     for decl in parsed_decl:
         print '%s wio_%s(%s);' % (decl[0], decl[1], decl[2])
     print
@@ -120,8 +129,9 @@ else:
         print '        struct {'
         for arg in decl[3]:
             print '            %s %s;' % (arg[0], arg[1])
-        print '            %s ret;' % decl[0]
-        print '            int verrno;'
+        if decl[0] != 'void':
+            print '            %s ret;' % decl[0]
+            print '            int verrno;'
         print '        } %s;' % decl[1]
     print '    };'
     print '};'
@@ -131,8 +141,11 @@ else:
     print '    switch (act->type) {'
     for decl in parsed_decl:
         print '        case %s:' % enum_name(decl)
-        print '            act->%s.ret = %s(%s);' % (decl[1], decl[1], args_call(decl))
-        print '            act->%s.verrno = errno;' % decl[1]
+        if decl[0] != 'void':
+            print '            act->%s.ret = %s(%s);' % (decl[1], decl[1], args_call(decl))
+            print '            act->%s.verrno = errno;' % decl[1]
+        else:
+            print '            %s(%s);' % (decl[1], args_call(decl))
         print '            break;'
     print '    }'
     print '}'
@@ -146,7 +159,8 @@ else:
             print '    act.%s.%s = %s;' % (decl[1], arg[1], arg[1])
         print '    wakeup_fd_listener();'
         print '    submit_action(&wire_io, &act.common);'
-        print '    errno = act.%s.verrno;' % decl[1]
-        print '    return act.%s.ret;' % decl[1]
+        if decl[0] != 'void':
+            print '    errno = act.%s.verrno;' % decl[1]
+            print '    return act.%s.ret;' % decl[1]
         print '}'
         print

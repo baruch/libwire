@@ -29,6 +29,8 @@ enum wio_type {
 	IO_CLOSEDIR,
 	IO_READDIR_R,
 	IO_READ_FILE_CONTENT,
+	IO_GLOB,
+	IO_GLOBFREE,
 };
 
 struct wire_io_act {
@@ -226,6 +228,17 @@ struct wire_io_act {
             int ret;
             int verrno;
         } read_file_content;
+        struct {
+            const char * pattern;
+            int flags;
+            glob_errfunc_t errfunc;
+            glob_t * pglob;
+            int ret;
+            int verrno;
+        } glob;
+        struct {
+            glob_t * pglob;
+        } globfree;
     };
 };
 
@@ -343,6 +356,13 @@ static void perform_action(struct wire_io_act *act)
         case IO_READ_FILE_CONTENT:
             act->read_file_content.ret = read_file_content(act->read_file_content.filename, act->read_file_content.buf, act->read_file_content.bufsz);
             act->read_file_content.verrno = errno;
+            break;
+        case IO_GLOB:
+            act->glob.ret = glob(act->glob.pattern, act->glob.flags, act->glob.errfunc, act->glob.pglob);
+            act->glob.verrno = errno;
+            break;
+        case IO_GLOBFREE:
+            globfree(act->globfree.pglob);
             break;
     }
 }
@@ -704,5 +724,28 @@ int wio_read_file_content(const char *filename, char *buf, size_t bufsz)
     submit_action(&wire_io, &act.common);
     errno = act.read_file_content.verrno;
     return act.read_file_content.ret;
+}
+
+int wio_glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)
+{
+    struct wire_io_act act;
+    act.type = IO_GLOB;
+    act.glob.pattern = pattern;
+    act.glob.flags = flags;
+    act.glob.errfunc = errfunc;
+    act.glob.pglob = pglob;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
+    errno = act.glob.verrno;
+    return act.glob.ret;
+}
+
+void wio_globfree(glob_t *pglob)
+{
+    struct wire_io_act act;
+    act.type = IO_GLOBFREE;
+    act.globfree.pglob = pglob;
+    wakeup_fd_listener();
+    submit_action(&wire_io, &act.common);
 }
 

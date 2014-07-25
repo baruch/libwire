@@ -13,6 +13,8 @@
 #include <sys/uio.h>
 #include <sys/mman.h>
 #include <dirent.h>
+#include <glob.h>
+typedef int (*glob_errfunc_t)(const char *epath, int eerrno) ;
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
@@ -41,5 +43,7 @@ DIR * wio_fdopendir(int fd);
 int wio_closedir(DIR *dirp);
 int wio_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result);
 int wio_read_file_content(const char *filename, char *buf, size_t bufsz);
+int wio_glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob);
+void wio_globfree(glob_t *pglob);
 
 #endif
