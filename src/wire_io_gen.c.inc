@@ -31,6 +31,10 @@ enum wio_type {
 	IO_READ_FILE_CONTENT,
 	IO_GLOB,
 	IO_GLOBFREE,
+	IO_POPEN,
+	IO_PCLOSE,
+	IO_FGETC,
+	IO_FGETS,
 };
 
 struct wire_io_act {
@@ -239,6 +243,29 @@ struct wire_io_act {
         struct {
             glob_t * pglob;
         } globfree;
+        struct {
+            const char * command;
+            const char * type;
+            FILE * ret;
+            int verrno;
+        } popen;
+        struct {
+            FILE * stream;
+            int ret;
+            int verrno;
+        } pclose;
+        struct {
+            FILE * stream;
+            int ret;
+            int verrno;
+        } fgetc;
+        struct {
+            char * s;
+            int size;
+            FILE * stream;
+            char * ret;
+            int verrno;
+        } fgets;
     };
 };
 
@@ -363,6 +390,22 @@ static void perform_action(struct wire_io_act *act)
             break;
         case IO_GLOBFREE:
             globfree(act->globfree.pglob);
+            break;
+        case IO_POPEN:
+            act->popen.ret = popen(act->popen.command, act->popen.type);
+            act->popen.verrno = errno;
+            break;
+        case IO_PCLOSE:
+            act->pclose.ret = pclose(act->pclose.stream);
+            act->pclose.verrno = errno;
+            break;
+        case IO_FGETC:
+            act->fgetc.ret = fgetc(act->fgetc.stream);
+            act->fgetc.verrno = errno;
+            break;
+        case IO_FGETS:
+            act->fgets.ret = fgets(act->fgets.s, act->fgets.size, act->fgets.stream);
+            act->fgets.verrno = errno;
             break;
     }
 }
@@ -717,5 +760,48 @@ void wio_globfree(glob_t *pglob)
     act.type = IO_GLOBFREE;
     act.globfree.pglob = pglob;
     submit_action(&wire_io, &act.common);
+}
+
+FILE * wio_popen(const char *command, const char *type)
+{
+    struct wire_io_act act;
+    act.type = IO_POPEN;
+    act.popen.command = command;
+    act.popen.type = type;
+    submit_action(&wire_io, &act.common);
+    errno = act.popen.verrno;
+    return act.popen.ret;
+}
+
+int wio_pclose(FILE *stream)
+{
+    struct wire_io_act act;
+    act.type = IO_PCLOSE;
+    act.pclose.stream = stream;
+    submit_action(&wire_io, &act.common);
+    errno = act.pclose.verrno;
+    return act.pclose.ret;
+}
+
+int wio_fgetc(FILE *stream)
+{
+    struct wire_io_act act;
+    act.type = IO_FGETC;
+    act.fgetc.stream = stream;
+    submit_action(&wire_io, &act.common);
+    errno = act.fgetc.verrno;
+    return act.fgetc.ret;
+}
+
+char * wio_fgets(char *s, int size, FILE *stream)
+{
+    struct wire_io_act act;
+    act.type = IO_FGETS;
+    act.fgets.s = s;
+    act.fgets.size = size;
+    act.fgets.stream = stream;
+    submit_action(&wire_io, &act.common);
+    errno = act.fgets.verrno;
+    return act.fgets.ret;
 }
 

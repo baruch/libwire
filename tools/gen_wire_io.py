@@ -14,6 +14,7 @@ includes = [
         "sys/mman.h",
         "dirent.h",
         "glob.h",
+        "stdio.h",
         ]
 
 typedefs = [
@@ -51,6 +52,10 @@ syscalls = [
         "int read_file_content(const char *filename, char *buf, size_t bufsz)",
         "int glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)",
         "void globfree(glob_t *pglob)",
+        "FILE *popen(const char *command, const char *type)",
+        "int pclose(FILE *stream)",
+        "int fgetc(FILE *stream)",
+        "char *fgets(char *s, int size, FILE *stream)",
         ]
 
 import re
