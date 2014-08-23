@@ -90,21 +90,21 @@ static pid_t spawn(char * *const args, int *stdin_fd, int *stdout_fd, int *stder
 	int errno_save;
 
 	if (stdin_fd) {
-		ret = pipe(inpipe);
+		ret = socketpair(AF_UNIX, SOCK_STREAM, 0, inpipe);
 		if (ret < 0)
 			goto pre_exec_failure;
 		*stdin_fd = inpipe[1];
 	}
 
 	if (stdout_fd) {
-		ret = pipe(outpipe);
+		ret = socketpair(AF_UNIX, SOCK_STREAM, 0, outpipe);
 		if (ret < 0)
 			goto pre_exec_failure;
 		*stdout_fd = outpipe[0];
 	}
 
 	if (stderr_fd) {
-		ret = pipe(errpipe);
+		ret = socketpair(AF_UNIX, SOCK_STREAM, 0, errpipe);
 		if (ret < 0)
 			goto pre_exec_failure;
 		*stderr_fd = errpipe[0];
