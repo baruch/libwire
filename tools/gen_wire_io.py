@@ -56,6 +56,8 @@ syscalls = [
         "int pclose(FILE *stream)",
         "int fgetc(FILE *stream)",
         "char *fgets(char *s, int size, FILE *stream)",
+        "int spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd)",
+        "int kill(pid_t pid, int sig)",
         ]
 
 import re

@@ -35,6 +35,8 @@ enum wio_type {
 	IO_PCLOSE,
 	IO_FGETC,
 	IO_FGETS,
+	IO_SPAWN,
+	IO_KILL,
 };
 
 struct wire_io_act {
@@ -266,6 +268,20 @@ struct wire_io_act {
             char * ret;
             int verrno;
         } fgets;
+        struct {
+            char ** args;
+            int * stdin_fd;
+            int * stdout_fd;
+            int * stderr_fd;
+            int ret;
+            int verrno;
+        } spawn;
+        struct {
+            pid_t pid;
+            int sig;
+            int ret;
+            int verrno;
+        } kill;
     };
 };
 
@@ -406,6 +422,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_FGETS:
             act->fgets.ret = fgets(act->fgets.s, act->fgets.size, act->fgets.stream);
             act->fgets.verrno = errno;
+            break;
+        case IO_SPAWN:
+            act->spawn.ret = spawn(act->spawn.args, act->spawn.stdin_fd, act->spawn.stdout_fd, act->spawn.stderr_fd);
+            act->spawn.verrno = errno;
+            break;
+        case IO_KILL:
+            act->kill.ret = kill(act->kill.pid, act->kill.sig);
+            act->kill.verrno = errno;
             break;
     }
 }
@@ -803,5 +827,29 @@ char * wio_fgets(char *s, int size, FILE *stream)
     submit_action(&wire_io, &act.common);
     errno = act.fgets.verrno;
     return act.fgets.ret;
+}
+
+int wio_spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd)
+{
+    struct wire_io_act act;
+    act.type = IO_SPAWN;
+    act.spawn.args = args;
+    act.spawn.stdin_fd = stdin_fd;
+    act.spawn.stdout_fd = stdout_fd;
+    act.spawn.stderr_fd = stderr_fd;
+    submit_action(&wire_io, &act.common);
+    errno = act.spawn.verrno;
+    return act.spawn.ret;
+}
+
+int wio_kill(pid_t pid, int sig)
+{
+    struct wire_io_act act;
+    act.type = IO_KILL;
+    act.kill.pid = pid;
+    act.kill.sig = sig;
+    submit_action(&wire_io, &act.common);
+    errno = act.kill.verrno;
+    return act.kill.ret;
 }
 

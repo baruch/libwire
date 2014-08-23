@@ -80,6 +80,78 @@ static int read_file_content(const char *filename, char *buf, size_t bufsz)
 	return ret;
 }
 
+static pid_t spawn(char * *const args, int *stdin_fd, int *stdout_fd, int *stderr_fd)
+{
+	pid_t pid;
+	int inpipe[2];
+	int outpipe[2];
+	int errpipe[2];
+
+	if (stdin_fd) {
+		pipe(inpipe);
+		*stdin_fd = inpipe[1];
+	}
+
+	if (stdout_fd) {
+		pipe(outpipe);
+		*stdout_fd = outpipe[0];
+	}
+
+	if (stderr_fd) {
+		pipe(errpipe);
+		*stderr_fd = errpipe[0];
+	}
+
+	pid = fork();
+
+	// Still parent
+	if (pid < 0) {
+		int errno_save = errno;
+		if (stdin_fd) {
+			close(inpipe[0]);
+			close(inpipe[1]);
+		}
+		if (stdout_fd) {
+			close(outpipe[0]);
+			close(outpipe[1]);
+		}
+		if (stderr_fd) {
+			close(errpipe[0]);
+			close(errpipe[1]);
+		}
+		errno = errno_save;
+		return pid;
+	}
+	if (pid > 0) {
+		if (stdin_fd)
+			close(inpipe[0]);
+		if (stdout_fd)
+			close(outpipe[1]);
+		if (stderr_fd)
+			close(errpipe[1]);
+		return pid;
+	}
+
+	// Child, must never return
+	if (stdin_fd) {
+		close(inpipe[1]);
+		dup2(inpipe[0], 0);
+		close(inpipe[0]);
+	}
+	if (stdout_fd) {
+		close(outpipe[0]);
+		dup2(outpipe[1], 1);
+		close(outpipe[1]);
+	}
+	if (stderr_fd) {
+		close(errpipe[0]);
+		dup2(errpipe[1], 2);
+		close(errpipe[1]);
+	}
+	execv(args[0], args);
+	_exit(errno);
+}
+
 #include "wire_io_gen.c.inc"
 
 static inline void set_nonblock(int fd)

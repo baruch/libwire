@@ -50,5 +50,7 @@ FILE * wio_popen(const char *command, const char *type);
 int wio_pclose(FILE *stream);
 int wio_fgetc(FILE *stream);
 char * wio_fgets(char *s, int size, FILE *stream);
+int wio_spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd);
+int wio_kill(pid_t pid, int sig);
 
 #endif
