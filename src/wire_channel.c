@@ -5,6 +5,7 @@ struct wire_msg {
 	struct list_head list;
 	wire_t *caller;
 	void *msg;
+	int received;
 };
 
 static void wire_channel_receiver_init(wire_channel_receiver_t *r)
@@ -37,10 +38,11 @@ void wire_channel_send(wire_channel_t *c, void *msg)
 		wire_wait_resume(rcvr->wait);
 	}
 
-	// Wait for the list to be empty as a sign it was actually received
+	// Wait for the message to be received
+	xmsg.received = 0;
 	do {
 		wire_suspend();
-	} while (!list_empty(&xmsg.list));
+	} while (xmsg.received == 0);
 }
 
 int wire_channel_recv_block(wire_channel_t *c, void **msg)
@@ -58,18 +60,13 @@ int wire_channel_recv_block(wire_channel_t *c, void **msg)
 
 		wire_wait_chain(&wait_list, &wait);
 
-		wire_channel_recv_wait(c, &rcvr, &wait);
+		rcvr.wait = &wait;
+		list_add_tail(&rcvr.list, &c->pending_recv);
 
 		wire_list_wait(&wait_list);
 	}
 
 	return 0;
-}
-
-void wire_channel_recv_wait(wire_channel_t *c, wire_channel_receiver_t *receiver, wire_wait_t *wait)
-{
-	receiver->wait = wait;
-	list_add_head(&receiver->list, &c->pending_recv);
 }
 
 int wire_channel_recv_nonblock(wire_channel_t *c, void **msg)
@@ -84,6 +81,7 @@ int wire_channel_recv_nonblock(wire_channel_t *c, void **msg)
 	list_head_init(&xmsg->list); // Tell the caller we have taken the data
 
 	// It is assumed that the message will be consumed before the next time the sender gets cpu time
+	xmsg->received = 1;
 	wire_resume(xmsg->caller);
 
 	*msg = xmsg->msg;
