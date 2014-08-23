@@ -83,22 +83,30 @@ static int read_file_content(const char *filename, char *buf, size_t bufsz)
 static pid_t spawn(char * *const args, int *stdin_fd, int *stdout_fd, int *stderr_fd)
 {
 	pid_t pid;
-	int inpipe[2];
-	int outpipe[2];
-	int errpipe[2];
+	int ret;
+	int inpipe[2] = {-1, -1};
+	int outpipe[2] = {-1, -1};
+	int errpipe[2] = {-1, -1};
+	int errno_save;
 
 	if (stdin_fd) {
-		pipe(inpipe);
+		ret = pipe(inpipe);
+		if (ret < 0)
+			goto pre_exec_failure;
 		*stdin_fd = inpipe[1];
 	}
 
 	if (stdout_fd) {
-		pipe(outpipe);
+		ret = pipe(outpipe);
+		if (ret < 0)
+			goto pre_exec_failure;
 		*stdout_fd = outpipe[0];
 	}
 
 	if (stderr_fd) {
-		pipe(errpipe);
+		ret = pipe(errpipe);
+		if (ret < 0)
+			goto pre_exec_failure;
 		*stderr_fd = errpipe[0];
 	}
 
@@ -106,21 +114,7 @@ static pid_t spawn(char * *const args, int *stdin_fd, int *stdout_fd, int *stder
 
 	// Still parent
 	if (pid < 0) {
-		int errno_save = errno;
-		if (stdin_fd) {
-			close(inpipe[0]);
-			close(inpipe[1]);
-		}
-		if (stdout_fd) {
-			close(outpipe[0]);
-			close(outpipe[1]);
-		}
-		if (stderr_fd) {
-			close(errpipe[0]);
-			close(errpipe[1]);
-		}
-		errno = errno_save;
-		return pid;
+		goto pre_exec_failure;
 	}
 	if (pid > 0) {
 		if (stdin_fd)
@@ -150,6 +144,23 @@ static pid_t spawn(char * *const args, int *stdin_fd, int *stdout_fd, int *stder
 	}
 	execv(args[0], args);
 	_exit(errno);
+
+pre_exec_failure:
+	errno_save = errno;
+	if (stdin_fd) {
+		close(inpipe[0]);
+		close(inpipe[1]);
+	}
+	if (stdout_fd) {
+		close(outpipe[0]);
+		close(outpipe[1]);
+	}
+	if (stderr_fd) {
+		close(errpipe[0]);
+		close(errpipe[1]);
+	}
+	errno = errno_save;
+	return -1;
 }
 
 #include "wire_io_gen.c.inc"
