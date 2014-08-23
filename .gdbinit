@@ -2,6 +2,8 @@ set history filename .gdb_history
 set history save
 set print pretty on
 
+set $wire_switched = 0
+
 define list_len
  set $start = &$arg0
  set $count = 0
@@ -172,6 +174,38 @@ define bt_wire
 end
 document bt_wire
 Display the backtrace of a wire
+end
+
+define switch_wire
+ if $wire_switched != 1
+   set $old_rsp1 = $rsp
+   set $old_rip1 = $ip
+   set $old_rbp1 = $rbp
+   set $wire_switched = 1
+ end
+
+ set $wire = (wire_t*)$arg0
+ set $new_rsp = $wire->ctx.sp
+ set $rsp = $new_rsp
+ set $rip = *(uint64_t *)($new_rsp + 6)
+ set $rbp = *(uint64_t *)($new_rsp + 7)
+ printf "Wire '%s' rip=0x%x:\n", $wire->name, $rip
+ bt
+end
+document switch_wire
+Switch to the wire given as an arg, use restore_wire to get back to the original place left
+end
+
+define restore_wire
+ if $wire_switched == 1
+   set $rsp = $old_rsp1
+   set $rip = $old_rip1
+   set $rbp = $old_rbp1
+   set $wire_switched = 0
+ end
+end
+document restore_wire
+Switch back the original wire we left in switch_wire
 end
 
 define list_to_wire
