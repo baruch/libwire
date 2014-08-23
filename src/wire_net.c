@@ -140,9 +140,10 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 
 	while (rcvd < min_read) {
 		int ret = read(net->fd_state.fd, buf + rcvd, count - rcvd);
-		if (ret == 0)
+		if (ret == 0) {
+			errno = ENODATA;
 			goto Exit;
-		else if (ret > 0) {
+		} else if (ret > 0) {
 			rcvd += ret;
 		} else { // Error condition: ret < 0
 			if (errno == EAGAIN) {
@@ -151,6 +152,7 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 				ret = wire_timeout_wait(&net->fd_state.wait, &net->tout);
 				if (ret != 1) {// Not the IO returned
 					wire_timeout_wait_stop(&net->tout);
+					errno = ETIMEDOUT;
 					goto Exit;
 				}
 			} else if (errno == EINTR) {
