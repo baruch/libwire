@@ -69,7 +69,7 @@ int wire_channel_recv_block(wire_channel_t *c, void **msg)
 void wire_channel_recv_wait(wire_channel_t *c, wire_channel_receiver_t *receiver, wire_wait_t *wait)
 {
 	receiver->wait = wait;
-	list_add_head(&c->pending_recv, &receiver->list);
+	list_add_head(&receiver->list, &c->pending_recv);
 }
 
 int wire_channel_recv_nonblock(wire_channel_t *c, void **msg)
