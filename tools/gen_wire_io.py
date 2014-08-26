@@ -15,10 +15,13 @@ includes = [
         "dirent.h",
         "glob.h",
         "stdio.h",
+        "ftw.h",
         ]
 
 typedefs = [
         "typedef int (*glob_errfunc_t)(const char *epath, int eerrno)",
+        "typedef int (*ftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag)",
+        "typedef int (*nftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)",
         ]
 
 syscalls = [
@@ -58,6 +61,8 @@ syscalls = [
         "char *fgets(char *s, int size, FILE *stream)",
         "int spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd)",
         "int kill(pid_t pid, int sig)",
+        "int ftw(const char *dirpath, ftw_cb_t cb, int nopenfd)",
+        "int nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)",
         ]
 
 import re

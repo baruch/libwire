@@ -15,7 +15,10 @@
 #include <dirent.h>
 #include <glob.h>
 #include <stdio.h>
+#include <ftw.h>
 typedef int (*glob_errfunc_t)(const char *epath, int eerrno) ;
+typedef int (*ftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag) ;
+typedef int (*nftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) ;
 int wio_open(const char *pathname, int flags, mode_t mode);
 int wio_close(int fd);
 ssize_t wio_pread(int fd, void *buf, size_t count, off_t offset);
@@ -52,5 +55,7 @@ int wio_fgetc(FILE *stream);
 char * wio_fgets(char *s, int size, FILE *stream);
 int wio_spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd);
 int wio_kill(pid_t pid, int sig);
+int wio_ftw(const char *dirpath, ftw_cb_t cb, int nopenfd);
+int wio_nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags);
 
 #endif

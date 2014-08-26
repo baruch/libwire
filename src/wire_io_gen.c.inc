@@ -37,6 +37,8 @@ enum wio_type {
 	IO_FGETS,
 	IO_SPAWN,
 	IO_KILL,
+	IO_FTW,
+	IO_NFTW,
 };
 
 struct wire_io_act {
@@ -282,6 +284,21 @@ struct wire_io_act {
             int ret;
             int verrno;
         } kill;
+        struct {
+            const char * dirpath;
+            ftw_cb_t cb;
+            int nopenfd;
+            int ret;
+            int verrno;
+        } ftw;
+        struct {
+            const char * dirpath;
+            nftw_cb_t cb;
+            int nopenfd;
+            int flags;
+            int ret;
+            int verrno;
+        } nftw;
     };
 };
 
@@ -430,6 +447,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_KILL:
             act->kill.ret = kill(act->kill.pid, act->kill.sig);
             act->kill.verrno = errno;
+            break;
+        case IO_FTW:
+            act->ftw.ret = ftw(act->ftw.dirpath, act->ftw.cb, act->ftw.nopenfd);
+            act->ftw.verrno = errno;
+            break;
+        case IO_NFTW:
+            act->nftw.ret = nftw(act->nftw.dirpath, act->nftw.cb, act->nftw.nopenfd, act->nftw.flags);
+            act->nftw.verrno = errno;
             break;
     }
 }
@@ -851,5 +876,30 @@ int wio_kill(pid_t pid, int sig)
     submit_action(&wire_io, &act.common);
     errno = act.kill.verrno;
     return act.kill.ret;
+}
+
+int wio_ftw(const char *dirpath, ftw_cb_t cb, int nopenfd)
+{
+    struct wire_io_act act;
+    act.type = IO_FTW;
+    act.ftw.dirpath = dirpath;
+    act.ftw.cb = cb;
+    act.ftw.nopenfd = nopenfd;
+    submit_action(&wire_io, &act.common);
+    errno = act.ftw.verrno;
+    return act.ftw.ret;
+}
+
+int wio_nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)
+{
+    struct wire_io_act act;
+    act.type = IO_NFTW;
+    act.nftw.dirpath = dirpath;
+    act.nftw.cb = cb;
+    act.nftw.nopenfd = nopenfd;
+    act.nftw.flags = flags;
+    submit_action(&wire_io, &act.common);
+    errno = act.nftw.verrno;
+    return act.nftw.ret;
 }
 
