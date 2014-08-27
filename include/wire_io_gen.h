@@ -46,6 +46,7 @@ DIR * wio_opendir(const char *name);
 DIR * wio_fdopendir(int fd);
 int wio_closedir(DIR *dirp);
 int wio_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result);
+struct dirent * wio_readdir(DIR *dirp);
 int wio_read_file_content(const char *filename, char *buf, size_t bufsz);
 int wio_glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob);
 void wio_globfree(glob_t *pglob);

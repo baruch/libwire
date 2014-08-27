@@ -52,6 +52,7 @@ syscalls = [
         "DIR *fdopendir(int fd)",
         "int closedir(DIR *dirp)",
         "int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)",
+        "struct dirent *readdir(DIR *dirp)",
         "int read_file_content(const char *filename, char *buf, size_t bufsz)",
         "int glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)",
         "void globfree(glob_t *pglob)",
