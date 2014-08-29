@@ -54,7 +54,7 @@ static const char *level_to_str(wire_log_level_e level)
 
 static void stdout_wire_func(void *arg)
 {
-	UNUSED(arg);
+	int fd = (long int)arg;
 
 	while (1) {
 		struct log_line *line = &lines[cur_write_line];
@@ -79,7 +79,7 @@ static void stdout_wire_func(void *arg)
 			iov[1].iov_len = next_str_len;
 			iov[2].iov_base = line->str;
 			iov[2].iov_len = line->str_len;
-			wio_writev(1, iov, 3);
+			wio_writev(fd, iov, 3);
 			line->str_len = 0;
 
 			wire_sem_release(&sem);
@@ -118,10 +118,17 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 	wire_resume(&stdout_wire);
 }
 
+void wire_log_init_stderr(void)
+{
+	wire_sem_init(&sem, NUM_LINES);
+	wire_init(&stdout_wire, "stderr logger", stdout_wire_func, (void*)2, stdout_wire_stack, sizeof(stdout_wire_stack));
+	wire_log = wire_log_stdout;
+}
+
 void wire_log_init_stdout(void)
 {
 	wire_sem_init(&sem, NUM_LINES);
-	wire_init(&stdout_wire, "stdout logger", stdout_wire_func, NULL, stdout_wire_stack, sizeof(stdout_wire_stack));
+	wire_init(&stdout_wire, "stdout logger", stdout_wire_func, (void*)1, stdout_wire_stack, sizeof(stdout_wire_stack));
 	wire_log = wire_log_stdout;
 }
 

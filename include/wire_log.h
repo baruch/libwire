@@ -29,6 +29,9 @@ extern void (*wire_log)(wire_log_level_e level, const char *fmt, ...);
 /** Initialize logging to log to stdout asynchronously. */
 void wire_log_init_stdout(void);
 
+/** Initialize logging to log to stderr asynchronously. */
+void wire_log_init_stderr(void);
+
 /** Initialize logging to log to syslog asynchronously. */
 void wire_log_init_syslog(const char *ident, int option, int facility);
 
