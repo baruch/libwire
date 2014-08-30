@@ -108,6 +108,9 @@ int wire_net_write(wire_net_t *net, const void *buf, size_t count, size_t *psent
 			goto Exit;
 		else if (ret > 0) {
 			sent += ret;
+			// For fairness we should yield here to let others do their work
+			if (sent != count)
+				wire_yield();
 		} else { // Error condition: ret < 0
 			if (errno == EAGAIN) {
 				// We are waiting for more data and none is present, wait for it but yield the wire
@@ -145,6 +148,9 @@ int wire_net_read_min(wire_net_t *net, void *buf, size_t count, size_t *prcvd, s
 			goto Exit;
 		} else if (ret > 0) {
 			rcvd += ret;
+			// For fairness we should yield here to let others do their work
+			if (rcvd < min_read)
+				wire_yield();
 		} else { // Error condition: ret < 0
 			if (errno == EAGAIN) {
 				// We are waiting for more data and none is prercvd, wait for it but yield the wire
