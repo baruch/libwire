@@ -79,12 +79,11 @@ int wire_wait_two(wire_wait_t *wait1, wire_wait_t *wait2);
 
 struct wire_wait_list {
 	struct list_head head;
-	wire_t *wire;
 };
 
 struct wire_wait {
 	struct list_head list;
-	wire_wait_list_t *start;
+	wire_t *wire;
 	unsigned waiting : 1;
 	unsigned triggered : 1;
 };
