@@ -40,6 +40,8 @@ enum wio_type {
 	IO_KILL,
 	IO_FTW,
 	IO_NFTW,
+	IO_WAIT,
+	IO_WAITPID,
 };
 
 struct wire_io_act {
@@ -305,6 +307,18 @@ struct wire_io_act {
             int ret;
             int verrno;
         } nftw;
+        struct {
+            int * status;
+            pid_t ret;
+            int verrno;
+        } wait;
+        struct {
+            pid_t pid;
+            int * status;
+            int options;
+            pid_t ret;
+            int verrno;
+        } waitpid;
     };
 };
 
@@ -465,6 +479,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_NFTW:
             act->nftw.ret = nftw(act->nftw.dirpath, act->nftw.cb, act->nftw.nopenfd, act->nftw.flags);
             act->nftw.verrno = errno;
+            break;
+        case IO_WAIT:
+            act->wait.ret = wait(act->wait.status);
+            act->wait.verrno = errno;
+            break;
+        case IO_WAITPID:
+            act->waitpid.ret = waitpid(act->waitpid.pid, act->waitpid.status, act->waitpid.options);
+            act->waitpid.verrno = errno;
             break;
     }
 }
@@ -921,5 +943,27 @@ int wio_nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)
     submit_action(&wire_io, &act.common);
     errno = act.nftw.verrno;
     return act.nftw.ret;
+}
+
+pid_t wio_wait(int *status)
+{
+    struct wire_io_act act;
+    act.type = IO_WAIT;
+    act.wait.status = status;
+    submit_action(&wire_io, &act.common);
+    errno = act.wait.verrno;
+    return act.wait.ret;
+}
+
+pid_t wio_waitpid(pid_t pid, int *status, int options)
+{
+    struct wire_io_act act;
+    act.type = IO_WAITPID;
+    act.waitpid.pid = pid;
+    act.waitpid.status = status;
+    act.waitpid.options = options;
+    submit_action(&wire_io, &act.common);
+    errno = act.waitpid.verrno;
+    return act.waitpid.ret;
 }
 

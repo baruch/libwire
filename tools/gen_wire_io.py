@@ -6,6 +6,7 @@ includes = [
         "sys/socket.h",
         "sys/vfs.h",
         "sys/ioctl.h",
+        "sys/wait.h",
         "fcntl.h",
         "unistd.h",
         "netdb.h",
@@ -64,6 +65,8 @@ syscalls = [
         "int kill(pid_t pid, int sig)",
         "int ftw(const char *dirpath, ftw_cb_t cb, int nopenfd)",
         "int nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)",
+        "pid_t wait(int *status)",
+        "pid_t waitpid(pid_t pid, int *status, int options)",
         ]
 
 import re

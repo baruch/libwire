@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/vfs.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -58,5 +59,7 @@ int wio_spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd);
 int wio_kill(pid_t pid, int sig);
 int wio_ftw(const char *dirpath, ftw_cb_t cb, int nopenfd);
 int wio_nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags);
+pid_t wio_wait(int *status);
+pid_t wio_waitpid(pid_t pid, int *status, int options);
 
 #endif
