@@ -40,13 +40,13 @@ static void wakeup_fd_listener(void)
 static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
 {
 	wire_wait_list_t wait_list;
-	wire_wait_t wait;
+	wire_wait_t wait_item;
 
 	wire_wait_list_init(&wait_list);
-	wire_wait_init(&wait);
-	wire_wait_chain(&wait_list, &wait);
+	wire_wait_init(&wait_item);
+	wire_wait_chain(&wait_list, &wait_item);
 
-	act->wait = &wait;
+	act->wait = &wait_item;
 
 	// Add the action to the list
 	pthread_mutex_lock(&wio->mutex);
