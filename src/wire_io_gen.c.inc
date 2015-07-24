@@ -42,6 +42,8 @@ enum wio_type {
 	IO_NFTW,
 	IO_WAIT,
 	IO_WAITPID,
+	IO_DUP,
+	IO_DUP2,
 };
 
 struct wire_io_act {
@@ -319,6 +321,17 @@ struct wire_io_act {
             pid_t ret;
             int verrno;
         } waitpid;
+        struct {
+            int oldfd;
+            int ret;
+            int verrno;
+        } dup;
+        struct {
+            int oldfd;
+            int newfd;
+            int ret;
+            int verrno;
+        } dup2;
     };
 };
 
@@ -487,6 +500,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_WAITPID:
             act->waitpid.ret = waitpid(act->waitpid.pid, act->waitpid.status, act->waitpid.options);
             act->waitpid.verrno = errno;
+            break;
+        case IO_DUP:
+            act->dup.ret = dup(act->dup.oldfd);
+            act->dup.verrno = errno;
+            break;
+        case IO_DUP2:
+            act->dup2.ret = dup2(act->dup2.oldfd, act->dup2.newfd);
+            act->dup2.verrno = errno;
             break;
     }
 }
@@ -965,5 +986,26 @@ pid_t wio_waitpid(pid_t pid, int *status, int options)
     submit_action(&wire_io, &act.common);
     errno = act.waitpid.verrno;
     return act.waitpid.ret;
+}
+
+int wio_dup(int oldfd)
+{
+    struct wire_io_act act;
+    act.type = IO_DUP;
+    act.dup.oldfd = oldfd;
+    submit_action(&wire_io, &act.common);
+    errno = act.dup.verrno;
+    return act.dup.ret;
+}
+
+int wio_dup2(int oldfd, int newfd)
+{
+    struct wire_io_act act;
+    act.type = IO_DUP2;
+    act.dup2.oldfd = oldfd;
+    act.dup2.newfd = newfd;
+    submit_action(&wire_io, &act.common);
+    errno = act.dup2.verrno;
+    return act.dup2.ret;
 }
 

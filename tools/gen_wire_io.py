@@ -67,6 +67,8 @@ syscalls = [
         "int nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)",
         "pid_t wait(int *status)",
         "pid_t waitpid(pid_t pid, int *status, int options)",
+        "int dup(int oldfd)",
+        "int dup2(int oldfd, int newfd)",
         ]
 
 import re

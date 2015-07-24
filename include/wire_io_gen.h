@@ -61,5 +61,7 @@ int wio_ftw(const char *dirpath, ftw_cb_t cb, int nopenfd);
 int wio_nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags);
 pid_t wio_wait(int *status);
 pid_t wio_waitpid(pid_t pid, int *status, int options);
+int wio_dup(int oldfd);
+int wio_dup2(int oldfd, int newfd);
 
 #endif
