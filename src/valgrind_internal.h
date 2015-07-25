@@ -3,8 +3,8 @@
 
 #ifdef USE_VALGRIND
 
-#include <valgrind/valgrind.h>
-#include <valgrind/memcheck.h>
+#include <valgrind.h>
+#include <memcheck.h>
 
 #else
 

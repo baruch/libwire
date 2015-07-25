@@ -572,7 +572,7 @@ coro_destroy (coro_context *ctx)
 #endif
 
 #if CORO_USE_VALGRIND
-# include <valgrind/valgrind.h>
+# include <valgrind.h>
 #endif
 
 #if _POSIX_MAPPED_FILES
