@@ -8,7 +8,7 @@
 
 #else
 
-#define VALGRIND_STACK_REGISTER(start, end)
+#define VALGRIND_STACK_REGISTER(start, end) 0
 #define VALGRIND_MAKE_MEM_UNDEFINED(_ptr, _size)
 
 #endif
