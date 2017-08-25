@@ -21,7 +21,9 @@ struct wire_io {
 	int response_recv_fd;
 	int num_active_ios;
 	wire_t wire;
-} wire_io;
+};
+
+static struct wire_io wire_io;
 
 struct wire_io_act_common {
 	struct list_head elem;
