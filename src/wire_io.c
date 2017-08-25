@@ -30,16 +30,9 @@ struct wire_io_act_common {
 	wire_wait_t *wait;
 };
 
-static void wakeup_fd_listener(void)
-{
-	if (wire_io.num_active_ios == 0)
-		wire_fd_mode_read(&wire_io.fd_state);
-	wire_io.num_active_ios++;
-}
-
 /* This runs in the wire thread and should hopefully only see rare lock contention and as such not really block at all.
  */
-static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
+static void submit_action(struct wire_io_act_common *act)
 {
 	wire_wait_list_t wait_list;
 	wire_wait_t wait_item;
@@ -51,15 +44,16 @@ static void submit_action(struct wire_io *wio, struct wire_io_act_common *act)
 	act->wait = &wait_item;
 
 	// Add the action to the list
-	pthread_mutex_lock(&wio->mutex);
-	list_add_tail(&act->elem, &wio->list);
-	pthread_mutex_unlock(&wio->mutex);
+	pthread_mutex_lock(&wire_io.mutex);
+	list_add_tail(&act->elem, &wire_io.list);
+	pthread_mutex_unlock(&wire_io.mutex);
 
 	// Wake at least one worker thread to get this action done
-	pthread_cond_signal(&wio->cond);
+	pthread_cond_signal(&wire_io.cond);
 
 	// Wait for the action to complete
-	wakeup_fd_listener();
+	wire_io.num_active_ios++;
+	wire_fd_mode_read(&wire_io.fd_state);
 	wire_list_wait(&wait_list);
 }
 
@@ -177,9 +171,9 @@ static inline void set_nonblock(int fd)
 }
 
 /* Return the performed action back to the caller */
-static void return_action(struct wire_io *wio, struct wire_io_act *act)
+static void return_action(struct wire_io_act *act)
 {
-	ssize_t ret = write(wio->response_send_fd, &act, sizeof(act));
+	ssize_t ret = write(wire_io.response_send_fd, &act, sizeof(act));
 	if (ret != sizeof(act))
 		printf("wire_io: returning action failed in write, ret=%d errno=%d:  %m\n", (int)ret, errno);
 }
@@ -189,21 +183,23 @@ static void return_action(struct wire_io *wio, struct wire_io_act *act)
  * and must ensure to unlock it and do it as fast as possible to reduce
  * contention.
  */
-static struct wire_io_act *get_action(struct wire_io *wio)
+static struct wire_io_act *get_action()
 {
-	pthread_mutex_lock(&wio->mutex);
+	pthread_t tid = pthread_self();
+	pthread_mutex_lock(&wire_io.mutex);
 
-	while (list_empty(&wio->list))
-		pthread_cond_wait(&wio->cond, &wio->mutex);
+	while (list_empty(&wire_io.list)) {
+		pthread_cond_wait(&wire_io.cond, &wire_io.mutex);
+	}
 
-	struct list_head *head = list_head(&wio->list);
+	struct list_head *head = list_head(&wire_io.list);
 	struct wire_io_act *entry = NULL;
 	if (head) {
 		list_del(head);
 		entry = (struct wire_io_act*)list_entry(head, struct wire_io_act_common, elem);
 	}
 
-	pthread_mutex_unlock(&wio->mutex);
+	pthread_mutex_unlock(&wire_io.mutex);
 
 	return entry;
 }
@@ -220,18 +216,16 @@ static void block_signals(void)
  */
 static void *wire_io_thread(void *arg)
 {
-	struct wire_io *wio = arg;
-
 	block_signals();
 
 	while (1) {
-		struct wire_io_act *act = get_action(wio);
+		struct wire_io_act *act = get_action();
 		if (!act) {
 			continue;
 		}
 
 		perform_action(act);
-		return_action(wio, act);
+		return_action(act);
 	}
 	return NULL;
 }
@@ -241,27 +235,25 @@ static void *wire_io_thread(void *arg)
  */
 static void wire_io_response(void *arg)
 {
-	struct wire_io *wio = arg;
-
-	set_nonblock(wio->response_recv_fd);
+	set_nonblock(wire_io.response_recv_fd);
 
 	while (1) {
 		struct wire_io_act *act[32];
-		ssize_t ret = read(wio->response_recv_fd, act, sizeof(act));
+		ssize_t ret = read(wire_io.response_recv_fd, act, sizeof(act));
 		if (ret > 0) {
 			unsigned i;
 			const unsigned num_ret = ret / sizeof(act[0]);
 			for (i = 0; i < num_ret; i++) {
 				wire_wait_resume(act[i]->common.wait);
-				wio->num_active_ios--;
-				if (wio->num_active_ios == 0)
-					wire_fd_mode_none(&wio->fd_state);
+				wire_io.num_active_ios--;
 			}
+            if (wire_io.num_active_ios == 0)
+                wire_fd_mode_none(&wire_io.fd_state);
 		} else if (ret < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				// The fd state is set to read by the submitter in SEND_RET macro
-				wire_wait_reset(&wio->fd_state.wait);
-				wire_fd_wait(&wio->fd_state); // Wait for the response, only if we would block
+				wire_wait_reset(&wire_io.fd_state.wait);
+				wire_fd_wait(&wire_io.fd_state); // Wait for the response, only if we would block
 			} else {
 				fprintf(stderr, "Error reading from socket for wire_io: %d = %m\n", errno);
 				abort();
@@ -272,11 +264,12 @@ static void wire_io_response(void *arg)
 		}
 	}
 
-	wire_fd_mode_none(&wio->fd_state);
-	close(wio->response_recv_fd);
-	close(wio->response_send_fd);
-	pthread_cond_destroy(&wio->cond);
-	pthread_mutex_destroy(&wio->mutex);
+	fprintf(stderr, "Closing down wire_io wire\n");
+	wire_fd_mode_none(&wire_io.fd_state);
+	close(wire_io.response_recv_fd);
+	close(wire_io.response_send_fd);
+	pthread_cond_destroy(&wire_io.cond);
+	pthread_mutex_destroy(&wire_io.mutex);
 }
 
 void wire_io_init(int num_threads)
@@ -302,6 +295,6 @@ void wire_io_init(int num_threads)
 	int i;
 	for (i = 0; i < num_threads; i++) {
 		pthread_t th;
-		pthread_create(&th, NULL, wire_io_thread, &wire_io);
+		pthread_create(&th, NULL, wire_io_thread, NULL);
 	}
 }
