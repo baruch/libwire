@@ -185,7 +185,6 @@ static void return_action(struct wire_io_act *act)
  */
 static struct wire_io_act *get_action()
 {
-	pthread_t tid = pthread_self();
 	pthread_mutex_lock(&wire_io.mutex);
 
 	while (list_empty(&wire_io.list)) {
