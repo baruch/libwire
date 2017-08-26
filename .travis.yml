@@ -6,7 +6,7 @@ before_install:
   - sudo apt-get update
   - sudo pip install cpp-coveralls
 
-script: gcc -v && mkdir build && cd build && cmake .. && make VERBOSE=1 && test/base && test/waiters && test/channel && test/locks && test/pool && test/asyncio && test/bench && test/recurser && test/wait && test/log_stdout && test/ct
+script: gcc -v && mkdir build && cd build && cmake .. && make VERBOSE=1 && test/base && test/waiters && test/channel && test/locks && test/pool && test/asyncio && test/bench && test/recurser && test/wait && test/log_stdout
 
 compiler:
   - gcc
