@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <signal.h>
+#include <stdbool.h>
 
 struct wire_io {
 	pthread_mutex_t mutex;
@@ -237,22 +238,24 @@ static void wire_io_response(void *arg)
 	set_nonblock(wire_io.response_recv_fd);
 
 	while (1) {
-		struct wire_io_act *act[32];
+		static const int MAX_RESPONSES = 32;
+		struct wire_io_act *act[MAX_RESPONSES];
+		bool go_to_sleep = false;
 		ssize_t ret = read(wire_io.response_recv_fd, act, sizeof(act));
 		if (ret > 0) {
 			unsigned i;
 			const unsigned num_ret = ret / sizeof(act[0]);
+			// Loop over all received responses
 			for (i = 0; i < num_ret; i++) {
+				// Wake each waiter
 				wire_wait_resume(act[i]->common.wait);
 				wire_io.num_active_ios--;
 			}
-            if (wire_io.num_active_ios == 0)
-                wire_fd_mode_none(&wire_io.fd_state);
+			if (num_ret < MAX_RESPONSES)
+				go_to_sleep = true;
 		} else if (ret < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				// The fd state is set to read by the submitter in SEND_RET macro
-				wire_wait_reset(&wire_io.fd_state.wait);
-				wire_fd_wait(&wire_io.fd_state); // Wait for the response, only if we would block
+				go_to_sleep = true;
 			} else {
 				fprintf(stderr, "Error reading from socket for wire_io: %d = %m\n", errno);
 				abort();
@@ -260,6 +263,12 @@ static void wire_io_response(void *arg)
 		} else {
 			fprintf(stderr, "EOF on the socketpair is highly improbable\n");
 			abort();
+		}
+
+		if (go_to_sleep) {
+			// The fd state is set to read by the submitter in SEND_RET macro
+			wire_wait_reset(&wire_io.fd_state.wait);
+			wire_fd_wait(&wire_io.fd_state); // Wait for the response, only if we would block
 		}
 	}
 
