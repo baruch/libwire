@@ -52,6 +52,11 @@ static void submit_action(struct wire_io_act_common *act)
 	// Wake at least one worker thread to get this action done
 	pthread_cond_signal(&wire_io.cond);
 
+	// Wake the reply waiting wire if needed
+	if (wire_io.num_active_ios == 0) {
+		wire_resume(&wire_io.wire);
+	}
+
 	// Wait for the action to complete
 	wire_io.num_active_ios++;
 	wire_fd_mode_read(&wire_io.fd_state);
@@ -251,6 +256,8 @@ static void wire_io_response(void *arg)
 				wire_wait_resume(act[i]->common.wait);
 				wire_io.num_active_ios--;
 			}
+			// We got less than the max number of responses so there is not
+			// likely to be more to process imemdiately, go to sleep
 			if (num_ret < MAX_RESPONSES)
 				go_to_sleep = true;
 		} else if (ret < 0) {
@@ -266,6 +273,13 @@ static void wire_io_response(void *arg)
 		}
 
 		if (go_to_sleep) {
+			if (wire_io.num_active_ios == 0) {
+				// No active io requests, do not hog the pending list
+				// Also allows the process to exit cleanly when nothing else needs to happen
+				wire_fd_mode_none(&wire_io.fd_state);
+				wire_suspend();
+			}
+
 			// The fd state is set to read by the submitter in SEND_RET macro
 			wire_wait_reset(&wire_io.fd_state.wait);
 			wire_fd_wait(&wire_io.fd_state); // Wait for the response, only if we would block
