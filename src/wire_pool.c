@@ -19,12 +19,18 @@ int wire_pool_init(wire_pool_t *pool, wire_pool_entry_t *entries, unsigned size,
 		entries = calloc(size, sizeof(wire_pool_entry_t));
 
 	pool->size = size;
-	pool->num_inited = 0;
 	pool->stack_size = stack_size;
 	pool->entries = entries;
 	list_head_init(&pool->free_list);
 	pool->block_count = 0;
 	wire_channel_init(&pool->block_ch);
+
+	unsigned idx;
+	for (idx = 0; idx < size; idx++) {
+		wire_pool_entry_t* entry = &(pool->entries[idx]);
+		list_add_tail(&entry->list, &pool->free_list);
+		entry->stack = wire_stack_alloc(pool->stack_size);
+	}
 	return 0;
 }
 
@@ -74,12 +80,6 @@ wire_t *wire_pool_alloc(wire_pool_t *pool, const char *name, void (*entry_point)
 	if (!list_empty(&pool->free_list)) {
 		entry = list_entry(list_head(&pool->free_list), wire_pool_entry_t, list);
 		list_del(&entry->list);
-	} else if (pool->num_inited < pool->size) {
-		// Not everything was initialized yet, initialize another one
-		unsigned index = pool->num_inited++;
-		entry = &(pool->entries[index]);
-		if (!entry->stack)
-			entry->stack = wire_stack_alloc(pool->stack_size);
 	} else {
 		// No place in pool
 		return NULL;

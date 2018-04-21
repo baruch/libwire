@@ -27,7 +27,6 @@ struct wire_gpool {
 	struct wire_gpool_entry *entries;
 	struct list_head free_list;
 	unsigned size;
-	unsigned num_inited;
 	unsigned stack_size;
 	unsigned block_count;
 	wire_channel_t block_ch;
