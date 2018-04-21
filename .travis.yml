@@ -17,4 +17,5 @@ env:
   - CFLAGS="-O0 --coverage -DCOVERAGE" LDFLAGS="--coverage" COVERAGE=1
 
 after_success:
-  - '[ -n "$COVERAGE" ] && coveralls --exclude test --exclude include --exclude src/http_parser.c'
+  - echo "coverage is $COVERAGE"
+  - '[ -n "$COVERAGE" ] && echo "reporting coverage" && coveralls --exclude test --exclude include --exclude src/http_parser.c'
