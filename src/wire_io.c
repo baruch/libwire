@@ -243,7 +243,7 @@ static void wire_io_response(void *UNUSED(arg))
 	set_nonblock(wire_io.response_recv_fd);
 
 	while (1) {
-		static const int MAX_RESPONSES = 32;
+		static const unsigned MAX_RESPONSES = 32;
 		struct wire_io_act *act[MAX_RESPONSES];
 		bool go_to_sleep = false;
 		ssize_t ret = read(wire_io.response_recv_fd, act, sizeof(act));
