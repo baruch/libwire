@@ -10,9 +10,8 @@ static wire_t task_master;
 static wire_t task_io;
 static wire_channel_t ch_io;
 
-static void master(void *arg)
+static void master(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	int val = 0;
 	while (val >= 0) {
 		wire_channel_t ch_reply;
@@ -28,9 +27,8 @@ static void master(void *arg)
 	}
 }
 
-static void io(void *arg)
+static void io(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	int val = 1;
 	while (1) {
 		wire_channel_t *ch_reply;

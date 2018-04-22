@@ -33,9 +33,8 @@ static void wire_fd_action_removed(void)
 	state.count--;
 }
 
-static void wire_fd_monitor(void *arg)
+static void wire_fd_monitor(void * UNUSED(arg))
 {
-	UNUSED(arg);
 	printf("fd monitor starts\n");
 
 	while (1) {

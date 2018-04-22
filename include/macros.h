@@ -12,7 +12,7 @@
 #endif
 
 #ifndef UNUSED
-#define UNUSED(x) (void)(x)
+#define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
 #endif
 
 #endif

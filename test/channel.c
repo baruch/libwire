@@ -10,17 +10,15 @@ static wire_t task_producer;
 static wire_t task_consumer;
 static wire_channel_t ch;
 
-static void producer(void *arg)
+static void producer(void * UNUSED(arg))
 {
-	UNUSED(arg);
 	int val = 42;
 	wire_channel_send(&ch, &val);
 	printf("Producer finished\n");
 }
 
-static void consumer(void *arg)
+static void consumer(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	void *msg;
 	wire_channel_recv_block(&ch, &msg);
 

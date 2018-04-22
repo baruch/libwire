@@ -25,10 +25,8 @@ static void lock_func(void *arg)
 	printf("Lock released from %d\n", num);
 }
 
-static void lock_close_func(void *arg)
+static void lock_close_func(void *UNUSED(arg))
 {
-	UNUSED(arg);
-
 	wire_fd_wait_msec(5*1000);
 	printf("Trying to close the lock now\n");
 	wire_lock_wait_clear(&lock);

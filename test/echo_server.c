@@ -57,9 +57,8 @@ static void task_echo_run(void *arg)
 	printf("echo is done\n");
 }
 
-static void task_accept_run(void *arg)
+static void task_accept_run(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	int fd = socket_setup(9876);
 	if (fd < 0)
 		return;

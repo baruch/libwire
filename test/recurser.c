@@ -15,9 +15,8 @@ static void do_recurse(int count)
 	do_recurse(count+1);
 }
 
-static void recurser(void *arg)
+static void recurser(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	printf("do recurse\n");
 	do_recurse(0);
 }

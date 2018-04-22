@@ -194,10 +194,8 @@ Exit:
 	wlog("Finished download for http://%s:%s%s", hostname, port, url_path);
 }
 
-static void init_wire_func(void *arg)
+static void init_wire_func(void *UNUSED(arg))
 {
-	UNUSED(arg);
-
 	int i;
 	for (i = 1; i < g_argc; i++) {
 		wlog("Initiating download for %s", g_argv[i]);

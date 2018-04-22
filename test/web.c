@@ -19,8 +19,10 @@
 
 #ifdef NDEBUG
 #define DEBUG(fmt, ...)
+#define UNUSED_NDEBUG(x) UNUSED(x)
 #else
 #define DEBUG(fmt, ...) xlog(fmt, ## __VA_ARGS__)
+#define UNUSED_NDEBUG(x) x
 #endif
 
 #define WEB_POOL_SIZE 128
@@ -46,16 +48,14 @@ static void xlog(const char *fmt, ...)
 	puts(msg);
 }
 
-static int on_message_begin(http_parser *parser)
+static int on_message_begin(http_parser *UNUSED(parser))
 {
-	UNUSED(parser);
 	DEBUG("Message begin");
 	return 0;
 }
 
 static int on_headers_complete(http_parser *parser)
 {
-	UNUSED(parser); // When in NDEBUG
 	DEBUG("Headers complete: HTTP/%d.%d %s", parser->http_major, parser->http_minor, http_method_str(parser->method));
 	return 0;
 }
@@ -97,47 +97,32 @@ static int on_message_complete(http_parser *parser)
 	return -1;
 }
 
-static int on_url(http_parser *parser, const char *at, size_t length)
+static int on_url(http_parser *UNUSED(parser), const char *UNUSED_NDEBUG(at), size_t UNUSED_NDEBUG(length))
 {
-	UNUSED(parser);
-	UNUSED(at); // When in NDEBUG
-	UNUSED(length); // When in NDEBUG
 	DEBUG("URL: %.*s", (int)length, at);
 	return 0;
 }
 
-static int on_status(http_parser *parser, const char *at, size_t length)
+static int on_status(http_parser *UNUSED(parser), const char *UNUSED_NDEBUG(at), size_t UNUSED_NDEBUG(length))
 {
-	UNUSED(parser);
-	UNUSED(at); // When in NDEBUG
-	UNUSED(length); // When in NDEBUG
 	DEBUG("STATUS: %.*s", (int)length, at);
 	return 0;
 }
 
-static int on_header_field(http_parser *parser, const char *at, size_t length)
+static int on_header_field(http_parser *UNUSED(parser), const char *UNUSED_NDEBUG(at), size_t UNUSED_NDEBUG(length))
 {
-	UNUSED(parser);
-	UNUSED(at); // When in NDEBUG
-	UNUSED(length); // When in NDEBUG
 	DEBUG("HEADER FIELD: %.*s", (int)length, at);
 	return 0;
 }
 
-static int on_header_value(http_parser *parser, const char *at, size_t length)
+static int on_header_value(http_parser *UNUSED(parser), const char *UNUSED_NDEBUG(at), size_t UNUSED_NDEBUG(length))
 {
-	UNUSED(parser);
-	UNUSED(at); // When in NDEBUG
-	UNUSED(length); // When in NDEBUG
 	DEBUG("HEADER VALUE: %.*s", (int)length, at);
 	return 0;
 }
 
-static int on_body(http_parser *parser, const char *at, size_t length)
+static int on_body(http_parser *UNUSED(parser), const char *UNUSED_NDEBUG(at), size_t UNUSED_NDEBUG(length))
 {
-	UNUSED(parser);
-	UNUSED(at); // When in NDEBUG
-	UNUSED(length); // When in NDEBUG
 	DEBUG("BODY: %.*s", (int)length, at);
 	return 0;
 }
@@ -212,9 +197,8 @@ static void web_run(void *arg)
 	DEBUG("Disconnected %d", d.fd);
 }
 
-static void accept_run(void *arg)
+static void accept_run(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	int port = 9090;
 	int fd = socket_setup(port);
 	if (fd < 0)

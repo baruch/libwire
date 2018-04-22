@@ -219,7 +219,7 @@ static void block_signals(void)
 
 /* The async thread implementation that waits for async actions to perform and runs them.
  */
-static void *wire_io_thread(void *arg)
+static void *wire_io_thread(void *UNUSED(arg))
 {
 	block_signals();
 
@@ -238,7 +238,7 @@ static void *wire_io_thread(void *arg)
 /* Take care of the response from the worker threads, gets the action that was
  * performed and resumes the caller to take care of the response.
  */
-static void wire_io_response(void *arg)
+static void wire_io_response(void *UNUSED(arg))
 {
 	set_nonblock(wire_io.response_recv_fd);
 

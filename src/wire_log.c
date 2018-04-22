@@ -10,10 +10,8 @@
 
 #define NUM_LINES 16
 
-static void null_wire_log(wire_log_level_e level, const char *fmt, ...)
+static void null_wire_log(wire_log_level_e UNUSED(level), const char *fmt, ...)
 {
-	UNUSED(level);
-
 	va_list ap;
 
 	// NOTE: This will block the process!

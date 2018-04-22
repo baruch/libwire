@@ -29,9 +29,8 @@ static void consumer(void *arg)
 	printf("Consumer finished\n");
 }
 
-static void producer(void *arg)
+static void producer(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	wire_wait_t wait;
 	wire_wait_list_t wait_list;
 

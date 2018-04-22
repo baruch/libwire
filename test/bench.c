@@ -12,9 +12,8 @@ static wire_t task_bye;
 int steps = 100 * 1000 * 1000;
 int stop;
 
-static void action(void *msg)
+static void action(void *UNUSED(msg))
 {
-	UNUSED(msg);
 	while (--stop > 0) {
 		wire_yield();
 	}

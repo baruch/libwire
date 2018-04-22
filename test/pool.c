@@ -20,9 +20,8 @@ static void func(void *arg)
 	printf("wire done %d\n", num);
 }
 
-static void init_func(void *arg)
+static void init_func(void *UNUSED(arg))
 {
-	UNUSED(arg);
 	int i;
 	for (i = 0; i < num_wires; i++) {
 		char name[16];

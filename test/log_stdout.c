@@ -23,10 +23,8 @@ static void do_log(void *arg)
 	wire_log(WLOG_NOTICE, "End of wire %s", name);
 }
 
-static void do_init(void *arg)
+static void do_init(void *UNUSED(arg))
 {
-	UNUSED(arg);
-
 	unsigned i;
 	for (i = 0; i < sizeof(task_log)/sizeof(task_log[0]); i++) {
 		char name[32];

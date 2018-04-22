@@ -67,11 +67,8 @@ static const char *sigsegv_code(int si_code)
 	}
 }
 
-static void sigsegv_handler(int sig, siginfo_t *si, void *unused)
+static void sigsegv_handler(int UNUSED(sig), siginfo_t *si, void *UNUSED(unused))
 {
-	UNUSED(unused);
-	UNUSED(sig);
-
 	wire_t *wire = wire_get_current();
 
 	fprintf(stderr, "Current running wire: %s\n", wire->name);
