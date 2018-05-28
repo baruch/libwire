@@ -15,7 +15,7 @@ static wire_thread_t *g_wire_thread;
 
 static wire_t *_wire_get_next(void)
 {
-	if (!list_empty(&g_wire_thread->ready_list)) {
+	if (__builtin_expect(!list_empty(&g_wire_thread->ready_list), 1)) {
 		wire_t *wire = list_entry(list_head(&g_wire_thread->ready_list), wire_t, list);
 		return wire;
 	}
@@ -30,24 +30,20 @@ wire_t *wire_get_current(void)
 	return g_wire_thread->running_wire;
 }
 
-static void _wire_switch_to(wire_t *wire)
+static void wire_schedule(void)
 {
+	wire_t *wire = _wire_get_next();
 	wire_t *from = wire_get_current();
-	g_wire_thread->running_wire = wire;
 
-	if (wire != from) {
+	if (__builtin_expect(wire != from, 1)) {
 #ifdef WIRE_SWITCH_DEBUG
 		write(2, "Switching to wire ", strlen("Switching to wire "));
 		write(2, wire->name, strlen(wire->name));
 		write(2, "\n", 1);
 #endif
+		g_wire_thread->running_wire = wire;
 		coro_transfer(&from->ctx, &wire->ctx);
 	}
-}
-
-static void wire_schedule(void)
-{
-	_wire_switch_to(_wire_get_next());
 }
 
 static void _exec(wire_t *wire)
