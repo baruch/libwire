@@ -53,9 +53,11 @@ static void _exec(wire_t *wire)
 	// We exited from the wire, we shouldn't come back anymore
 	list_del(&wire->list);
 
+#ifdef USE_VALGRIND
 	// Invalidate memory in valgrind
 	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
 	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
+#endif
 
 	// Now switch to the next wire
 	wire_schedule();
@@ -80,9 +82,9 @@ void wire_thread_init(wire_thread_t *wire)
 
 void wire_thread_run(void)
 {
-	while (!list_empty(&g_wire_thread->ready_list)) {
+//	while (!list_empty(&g_wire_thread->ready_list)) {
 		wire_schedule();
-	}
+//	}
 }
 
 wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), void *wire_data, void *stack, unsigned stack_size)
@@ -94,8 +96,10 @@ wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), v
 
 	wire->entry_point = entry_point;
 	wire->arg = wire_data;
+#ifdef USE_VALGRIND
 	wire->stack = stack;
 	wire->stack_size = stack_size;
+#endif
 
 	coro_create(&wire->ctx, (coro_func)_exec, wire, stack, stack_size);
 	list_add_tail(&wire->list, &g_wire_thread->ready_list);

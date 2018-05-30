@@ -73,12 +73,16 @@ static void sigsegv_handler(int UNUSED(sig), siginfo_t *si, void *UNUSED(unused)
 
 	fprintf(stderr, "Current running wire: %s\n", wire->name);
 	fprintf(stderr, "Got SIGSEGV at address: %p reason: %s\n", si->si_addr, sigsegv_code(si->si_code));
+#ifndef USE_VALGRIND
+    fprintf(stderr, "Current wire: %p\n", wire);
+#else
 	fprintf(stderr, "Current wire: %p stack: %p - %p\n", wire, wire->stack, wire->stack + wire->stack_size);
 
 	if (wire->stack - 4096 < si->si_addr && si->si_addr < wire->stack)
 		fprintf(stderr, "Stack overflow happened\n");
 	else if (wire->stack + wire->stack_size < si->si_addr && si->si_addr < wire->stack + wire->stack_size + 4096)
 		fprintf(stderr, "Stack underflow happened\n");
+#endif
 
 	__gcov_flush();
 	raise(SIGSEGV);
