@@ -31,6 +31,18 @@ static void action_create(void *count)
 	wire_pool_alloc(&pool, "cont", action_create, (void*)(long)icount);
 }
 
+static void timespec_diff(struct timespec* x, struct timespec* y, struct timespec* diff)
+{
+    diff->tv_sec = x->tv_sec - y->tv_sec;
+    diff->tv_nsec = x->tv_nsec - y->tv_nsec;
+
+    if (diff->tv_nsec < 0) {
+        // Borrow one second from the whole numbers
+        diff->tv_nsec += 1000*1000*1000;
+        diff->tv_sec--;
+    }
+}
+
 
 int main()
 {
@@ -46,7 +58,11 @@ int main()
 	wire_thread_run();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 
-	printf("Doing %d steps took %ld seconds and %ld nanoseconds\n", steps, end.tv_sec - start.tv_sec, end.tv_nsec - start.tv_nsec);
+    struct timespec diff;
+
+    timespec_diff(&end, &start, &diff);
+
+	printf("Doing %d steps took %ld seconds and %ld nanoseconds\n", steps, diff.tv_sec, diff.tv_nsec);
 
 	unsigned long long steps_factor = steps * 1000;
 	unsigned long long msecs = (end.tv_sec - start.tv_sec) * 1000;
@@ -60,7 +76,8 @@ int main()
 	wire_thread_run();
 	clock_gettime(CLOCK_MONOTONIC, &end);
 
-	printf("Doing %d steps took %ld seconds and %ld nanoseconds\n", steps, end.tv_sec - start.tv_sec, end.tv_nsec - start.tv_nsec);
+    timespec_diff(&end, &start, &diff);
+	printf("Doing %d steps took %ld seconds and %ld nanoseconds\n", steps, diff.tv_sec, diff.tv_nsec);
 
 	msecs = (end.tv_sec - start.tv_sec) * 1000;
 	msecs += (end.tv_nsec - start.tv_nsec) / (1000 * 1000);
