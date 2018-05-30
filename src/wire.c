@@ -81,9 +81,7 @@ void wire_thread_init(void)
 
 void wire_thread_run(void)
 {
-	while (!list_empty(&g_wire_thread.ready_list)) {
-		wire_schedule();
-	}
+	wire_schedule();
 }
 
 wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), void *wire_data, void *stack, unsigned stack_size)
