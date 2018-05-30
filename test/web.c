@@ -27,7 +27,6 @@
 
 #define WEB_POOL_SIZE 128
 
-static wire_thread_t wire_thread_main;
 static wire_t wire_accept;
 static wire_pool_t web_pool;
 
@@ -240,7 +239,7 @@ static void accept_run(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_thread_main);
+	wire_thread_init();
 	wire_fd_init();
 	wire_pool_init(&web_pool, NULL, WEB_POOL_SIZE, 16*1024);
 	wire_init(&wire_accept, "accept", accept_run, NULL, WIRE_STACK_ALLOC(4096));

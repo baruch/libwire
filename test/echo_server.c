@@ -14,7 +14,6 @@
 
 #include "utils.h"
 
-static wire_thread_t wire_main;
 static wire_t task_accept;
 static wire_pool_t echo_pool;
 
@@ -88,7 +87,7 @@ static void task_accept_run(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 	wire_pool_init(&echo_pool, NULL, 6, 4096);
 	wire_init(&task_accept, "accept", task_accept_run, NULL, WIRE_STACK_ALLOC(4096));

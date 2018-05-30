@@ -13,7 +13,6 @@
 #include <stdarg.h>
 #include <memory.h>
 
-static wire_thread_t wire_main;
 static int g_argc;
 static char **g_argv;
 static wire_t init_wire;
@@ -206,7 +205,7 @@ static void init_wire_func(void *UNUSED(arg))
 
 int main(int argc, char **argv)
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_stack_fault_detector_install();
 	wire_fd_init();
 	wire_io_init(4);

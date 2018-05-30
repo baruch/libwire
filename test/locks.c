@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_pool_t wire_pool;
 static wire_lock_t lock;
 
@@ -35,7 +34,7 @@ static void lock_close_func(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 
 	const int num_wires = 8;

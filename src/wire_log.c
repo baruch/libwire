@@ -29,12 +29,16 @@ struct log_line {
 	char str[128];
 };
 
-static wire_t stdout_wire;
-static char stdout_wire_stack[4096];
-static wire_sem_t sem;
-static struct log_line lines[NUM_LINES];
-static int cur_log_line;
-static int cur_write_line;
+struct wire_log_state {
+    wire_t stdout_wire;
+    char stdout_wire_stack[4096];
+    wire_sem_t sem;
+    struct log_line lines[NUM_LINES];
+    int cur_log_line;
+    int cur_write_line;
+};
+
+static __thread struct wire_log_state state;
 
 static const char *level_to_str(wire_log_level_e level)
 {
@@ -55,7 +59,7 @@ static void stdout_wire_func(void *arg)
 	int fd = (long int)arg;
 
 	while (1) {
-		struct log_line *line = &lines[cur_write_line];
+		struct log_line *line = &state.lines[state.cur_write_line];
 		if (line->str_len) {
 			time_t t;
 			struct tm tm;
@@ -80,9 +84,9 @@ static void stdout_wire_func(void *arg)
 			wio_writev(fd, iov, 3);
 			line->str_len = 0;
 
-			wire_sem_release(&sem);
-			if (++cur_write_line == NUM_LINES)
-				cur_write_line = 0;
+			wire_sem_release(&state.sem);
+			if (++state.cur_write_line == NUM_LINES)
+				state.cur_write_line = 0;
 		} else {
 			wire_suspend();
 		}
@@ -97,10 +101,10 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 	clock_gettime(CLOCK_REALTIME, &t);
 
 	// Wait until logging is possible
-	wire_sem_take(&sem);
-	struct log_line *line = &lines[cur_log_line];
-	if (++cur_log_line == NUM_LINES)
-		cur_log_line = 0;
+	wire_sem_take(&state.sem);
+	struct log_line *line = &state.lines[state.cur_log_line];
+	if (++state.cur_log_line == NUM_LINES)
+		state.cur_log_line = 0;
 
 	line->t = t;
 	line->level = level;
@@ -113,20 +117,20 @@ static void wire_log_stdout(wire_log_level_e level, const char *fmt, ...)
 	}
 	line->str[line->str_len++] = '\n';
 
-	wire_resume(&stdout_wire);
+	wire_resume(&state.stdout_wire);
 }
 
 void wire_log_init_stderr(void)
 {
-	wire_sem_init(&sem, NUM_LINES);
-	wire_init(&stdout_wire, "stderr logger", stdout_wire_func, (void*)2, stdout_wire_stack, sizeof(stdout_wire_stack));
+	wire_sem_init(&state.sem, NUM_LINES);
+	wire_init(&state.stdout_wire, "stderr logger", stdout_wire_func, (void*)2, state.stdout_wire_stack, sizeof(state.stdout_wire_stack));
 	wire_log = wire_log_stdout;
 }
 
 void wire_log_init_stdout(void)
 {
-	wire_sem_init(&sem, NUM_LINES);
-	wire_init(&stdout_wire, "stdout logger", stdout_wire_func, (void*)1, stdout_wire_stack, sizeof(stdout_wire_stack));
+	wire_sem_init(&state.sem, NUM_LINES);
+	wire_init(&state.stdout_wire, "stdout logger", stdout_wire_func, (void*)1, state.stdout_wire_stack, sizeof(state.stdout_wire_stack));
 	wire_log = wire_log_stdout;
 }
 

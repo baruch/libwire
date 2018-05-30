@@ -7,7 +7,6 @@
 #include <string.h>
 #include <assert.h>
 
-static wire_thread_t wire_main;
 static wire_t task_io1;
 static wire_t task_io2;
 static wire_t task_io3;
@@ -67,7 +66,7 @@ static void io(void *arg)
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_stack_fault_detector_install();
 	wire_fd_init();
 	wire_io_init(1);

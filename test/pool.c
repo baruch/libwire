@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_pool_t wire_pool;
 static wire_t wire_init_;
 
@@ -42,7 +41,7 @@ static void init_func(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 
 	// Allocate a smaller pool so we also get to the blocked part

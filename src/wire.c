@@ -11,23 +11,23 @@
 #include <unistd.h>
 #endif
 
-static wire_thread_t *g_wire_thread;
+static __thread struct wire_thread g_wire_thread;
 
 static wire_t *_wire_get_next(void)
 {
-	if (__builtin_expect(!list_empty(&g_wire_thread->ready_list), 1)) {
-		wire_t *wire = list_entry(list_head(&g_wire_thread->ready_list), wire_t, list);
+	if (__builtin_expect(!list_empty(&g_wire_thread.ready_list), 1)) {
+		wire_t *wire = list_entry(list_head(&g_wire_thread.ready_list), wire_t, list);
 		return wire;
 	}
 
 	// If we have nowhere to switch to, switch to the original starting stack
 	// This will most likely result with us exiting from the application.
-	return &g_wire_thread->sched_wire;
+	return &g_wire_thread.sched_wire;
 }
 
 wire_t *wire_get_current(void)
 {
-	return g_wire_thread->running_wire;
+	return g_wire_thread.running_wire;
 }
 
 static void wire_schedule(void)
@@ -41,7 +41,7 @@ static void wire_schedule(void)
 		write(2, wire->name, strlen(wire->name));
 		write(2, "\n", 1);
 #endif
-		g_wire_thread->running_wire = wire;
+		g_wire_thread.running_wire = wire;
 		coro_transfer(&from->ctx, &wire->ctx);
 	}
 }
@@ -66,25 +66,24 @@ static void _exec(wire_t *wire)
 	abort();
 }
 
-void wire_thread_init(wire_thread_t *wire)
+void wire_thread_init(void)
 {
-	g_wire_thread = wire;
-	memset(g_wire_thread, 0, sizeof(*g_wire_thread));
+	memset(&g_wire_thread, 0, sizeof(g_wire_thread));
 
-	list_head_init(&g_wire_thread->ready_list);
-	list_head_init(&g_wire_thread->suspend_list);
-	sprintf(g_wire_thread->sched_wire.name, "sched %p", wire);
+	list_head_init(&g_wire_thread.ready_list);
+	list_head_init(&g_wire_thread.suspend_list);
+	sprintf(g_wire_thread.sched_wire.name, "sched %p", &g_wire_thread);
 
 	// Initialize coro for the initial jump
-	coro_create(&g_wire_thread->sched_wire.ctx, 0, 0, 0, 0);
-	g_wire_thread->running_wire = &g_wire_thread->sched_wire;
+	coro_create(&g_wire_thread.sched_wire.ctx, 0, 0, 0, 0);
+	g_wire_thread.running_wire = &g_wire_thread.sched_wire;
 }
 
 void wire_thread_run(void)
 {
-//	while (!list_empty(&g_wire_thread->ready_list)) {
+	while (!list_empty(&g_wire_thread.ready_list)) {
 		wire_schedule();
-//	}
+	}
 }
 
 wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), void *wire_data, void *stack, unsigned stack_size)
@@ -102,7 +101,7 @@ wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), v
 #endif
 
 	coro_create(&wire->ctx, (coro_func)_exec, wire, stack, stack_size);
-	list_add_tail(&wire->list, &g_wire_thread->ready_list);
+	list_add_tail(&wire->list, &g_wire_thread.ready_list);
 	return wire;
 }
 
@@ -111,7 +110,7 @@ void wire_yield(void)
 	wire_t *this_wire = wire_get_current();
 
 	// Move to the end of the ready list
-	list_move_tail(&this_wire->list, &g_wire_thread->ready_list);
+	list_move_tail(&this_wire->list, &g_wire_thread.ready_list);
 
 	// Schedule the next one (could be the same wire though!)
 	wire_schedule();
@@ -120,16 +119,16 @@ void wire_yield(void)
 void wire_suspend(void)
 {
 	wire_t *this_wire = wire_get_current();
-	list_move_tail(&this_wire->list, &g_wire_thread->suspend_list);
+	list_move_tail(&this_wire->list, &g_wire_thread.suspend_list);
 	wire_schedule();
 }
 
 void wire_resume(wire_t *wire)
 {
-	list_move_tail(&wire->list, &g_wire_thread->ready_list);
+	list_move_tail(&wire->list, &g_wire_thread.ready_list);
 }
 
 int wire_is_only_one(void)
 {
-	return list_is_single(&g_wire_thread->ready_list);
+	return list_is_single(&g_wire_thread.ready_list);
 }

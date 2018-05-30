@@ -7,7 +7,6 @@
 #include <time.h>
 #include <inttypes.h>
 
-static wire_thread_t wire_main;
 static wire_pool_t pool;
 static wire_t task_hello;
 static wire_t task_bye;
@@ -41,7 +40,7 @@ int main()
 	stop = steps;
 
 	clock_gettime(CLOCK_MONOTONIC, &start);
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_init(&task_hello, "hello", action, NULL, WIRE_STACK_ALLOC(4096));
 	wire_init(&task_bye, "bye", action, NULL, WIRE_STACK_ALLOC(4096));
 	wire_thread_run();

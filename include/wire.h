@@ -7,14 +7,11 @@
  * libwire main part. This includes the inner core of the libwire library,
  * everything else is only supporting this to make it easier to use and can be
  * replaced if needed.
+ *
+ * There is a coroutine root variable but it is in thread-local-storage, it
+ * needs to be initialized with wire_thread_init().
  */
 /// @{
-
-/** The coroutine root.
- *
- * When libwire will support multiple threads there will be one wire_thread_t for each OS thread.
- */
-typedef struct wire_thread wire_thread_t;
 
 /** The user-space thread. This represents an actual user-space thread with all of its associated gear.
  * It can be allocted by the user or brought it by the wire_pool.
@@ -25,7 +22,7 @@ typedef struct wire wire_t;
  *
  * Give it an uninitialized but allocated space to work in and it will take care of it for this OS thread.
  */
-void wire_thread_init(wire_thread_t *wire);
+void wire_thread_init(void);
 
 /** Run the user-space threads. This function only returns when there are no
  * wires to run, you should have initialized one or more wires before

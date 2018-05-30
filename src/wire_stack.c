@@ -11,9 +11,14 @@
 #include <string.h>
 
 static unsigned page_size;
-static void *base;
-static const unsigned alloc_size = 10*1024*1024;
-static unsigned used_size;
+
+struct wire_stack_state {
+    void *base;
+    unsigned used_size;
+};
+
+const unsigned alloc_size = 10*1024*1024;
+static __thread struct wire_stack_state state;
 
 #ifdef COVERAGE
 void __gcov_flush(void);
@@ -30,26 +35,26 @@ void *wire_stack_alloc(unsigned stack_size)
 	stack_size = stack_size_pages * page_size;
 	unsigned full_size = stack_size + page_size;
 
-	if (base == NULL || used_size + full_size > alloc_size) {
+	if (state.base == NULL || state.used_size + full_size > alloc_size) {
 		void *ptr = mmap(0, alloc_size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 		if (ptr == MAP_FAILED) {
 			perror("Failed to allocate space for stacks");
 			return NULL;
 		}
 
-		base = ptr + page_size;
-		used_size = page_size;
+		state.base = ptr + page_size;
+		state.used_size = page_size;
 	}
 
-	void *ptr = base;
+	void *ptr = state.base;
 	int ret = mprotect(ptr, stack_size, PROT_READ|PROT_WRITE);
 	if (ret < 0) {
 		perror("failed to mprotect stack for read/write");
 		abort();
 	}
 
-	base += stack_size + page_size;
-	used_size += stack_size + page_size;
+	state.base += stack_size + page_size;
+	state.used_size += stack_size + page_size;
 
 	(void)VALGRIND_STACK_REGISTER(ptr, ptr + stack_size);
 	return ptr;

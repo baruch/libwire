@@ -24,7 +24,7 @@ struct wire_io {
 	wire_t wire;
 };
 
-static struct wire_io wire_io;
+static __thread struct wire_io wire_io;
 
 struct wire_io_act_common {
 	struct list_head elem;
@@ -177,9 +177,9 @@ static inline void set_nonblock(int fd)
 }
 
 /* Return the performed action back to the caller */
-static void return_action(struct wire_io_act *act)
+static void return_action(struct wire_io* wire_io, struct wire_io_act *act)
 {
-	ssize_t ret = write(wire_io.response_send_fd, &act, sizeof(act));
+	ssize_t ret = write(wire_io->response_send_fd, &act, sizeof(act));
 	if (ret != sizeof(act))
 		printf("wire_io: returning action failed in write, ret=%d errno=%d:  %m\n", (int)ret, errno);
 }
@@ -189,22 +189,22 @@ static void return_action(struct wire_io_act *act)
  * and must ensure to unlock it and do it as fast as possible to reduce
  * contention.
  */
-static struct wire_io_act *get_action()
+static struct wire_io_act *get_action(struct wire_io* wire_io)
 {
-	pthread_mutex_lock(&wire_io.mutex);
+	pthread_mutex_lock(&wire_io->mutex);
 
-	while (list_empty(&wire_io.list)) {
-		pthread_cond_wait(&wire_io.cond, &wire_io.mutex);
+	while (list_empty(&wire_io->list)) {
+		pthread_cond_wait(&wire_io->cond, &wire_io->mutex);
 	}
 
-	struct list_head *head = list_head(&wire_io.list);
+	struct list_head *head = list_head(&wire_io->list);
 	struct wire_io_act *entry = NULL;
 	if (head) {
 		list_del(head);
 		entry = (struct wire_io_act*)list_entry(head, struct wire_io_act_common, elem);
 	}
 
-	pthread_mutex_unlock(&wire_io.mutex);
+	pthread_mutex_unlock(&wire_io->mutex);
 
 	return entry;
 }
@@ -219,18 +219,19 @@ static void block_signals(void)
 
 /* The async thread implementation that waits for async actions to perform and runs them.
  */
-static void *wire_io_thread(void *UNUSED(arg))
+static void *wire_io_thread(void *arg)
 {
+    struct wire_io* wire_io = (struct wire_io*)arg;
 	block_signals();
 
 	while (1) {
-		struct wire_io_act *act = get_action();
+		struct wire_io_act *act = get_action(wire_io);
 		if (!act) {
 			continue;
 		}
 
 		perform_action(act);
-		return_action(act);
+		return_action(wire_io, act);
 	}
 	return NULL;
 }
@@ -317,6 +318,6 @@ void wire_io_init(int num_threads)
 	int i;
 	for (i = 0; i < num_threads; i++) {
 		pthread_t th;
-		pthread_create(&th, NULL, wire_io_thread, NULL);
+		pthread_create(&th, NULL, wire_io_thread, &wire_io);
 	}
 }

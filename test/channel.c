@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_t task_producer;
 static wire_t task_consumer;
 static wire_channel_t ch;
@@ -28,7 +27,7 @@ static void consumer(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 	wire_channel_init(&ch);
 	wire_init(&task_producer, "producer", producer, NULL, WIRE_STACK_ALLOC(4096));

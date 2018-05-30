@@ -14,16 +14,15 @@
 struct fd_state {
 	int epoll_fd;
 	int count;
+    wire_t fd_wire;
 };
 
-static struct fd_state state;
-
-static wire_t fd_wire;
+static __thread struct fd_state state;
 
 static void wire_fd_action_added(void)
 {
 	if (state.count == 0) {
-		wire_resume(&fd_wire);
+		wire_resume(&state.fd_wire);
 	}
 	state.count++;
 }
@@ -180,7 +179,7 @@ void wire_fd_wait_list_chain(wire_wait_list_t *wl, wire_fd_state_t *fd_state)
 
 void wire_fd_init(void)
 {
-	wire_init(&fd_wire, "fd monitor", wire_fd_monitor, NULL, WIRE_STACK_ALLOC(2*4096));
+	wire_init(&state.fd_wire, "fd monitor", wire_fd_monitor, NULL, WIRE_STACK_ALLOC(2*4096));
 
 	state.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 	if (state.epoll_fd < 0) {

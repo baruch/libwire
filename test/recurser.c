@@ -4,7 +4,6 @@
 #include "macros.h"
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_t task_recurse;
 
 static void do_recurse(int count)
@@ -24,7 +23,7 @@ static void recurser(void *UNUSED(arg))
 int main()
 {
 	wire_stack_fault_detector_install();
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 
 	wire_init(&task_recurse, "hello", recurser, NULL, wire_stack_alloc(4096), 4096);

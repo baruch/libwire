@@ -4,7 +4,6 @@
 #include "macros.h"
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_t task_hello;
 static wire_t task_bye;
 
@@ -36,7 +35,7 @@ static void bye(void *msg)
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 	wire_init(&task_hello, "hello", hello, "world!", WIRE_STACK_ALLOC(4096));
 	wire_init(&task_bye, "bye", bye, "world!", WIRE_STACK_ALLOC(4096));

@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdio.h>
 
-static wire_thread_t wire_main;
 static wire_t task_log[16];
 static wire_t task_init;
 
@@ -37,7 +36,7 @@ static void do_init(void *UNUSED(arg))
 
 int main()
 {
-	wire_thread_init(&wire_main);
+	wire_thread_init();
 	wire_fd_init();
 	wire_io_init(1);
 	wire_log(WLOG_INFO, "Do not crash on logging before wire_log init");
