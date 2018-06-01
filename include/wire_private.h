@@ -1,14 +1,23 @@
 // This must be included only from the wire.h
 
 #include "list.h"
+
+#if USE_LIBCORO
 #include "coro.h"
+#else
+typedef struct coro_context {
+	void** sp;
+} coro_context;
+#endif
 
 struct wire {
-	coro_context ctx;
+	coro_context ctx; // This must be first in the wire
 	struct list_head list;
 	char name[32];
-	void (*entry_point)(void *);
-	void *arg;
+#if USE_LIBCORO
+	void (*entry_point)(void*);
+	void* arg;
+#endif
 #ifdef USE_VALGRIND
 	void *stack;
 	unsigned stack_size;

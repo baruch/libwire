@@ -11,7 +11,113 @@
 #include <unistd.h>
 #endif
 
+static void wire_schedule(void);
+typedef void (*coro_func)(void *);
+
 static __thread struct wire_thread g_wire_thread;
+
+#if !USE_LIBCORO
+
+void coro_transfer(coro_context* from, coro_context* to);
+asm (
+   "\t.text\n"
+   "coro_transfer:\n"
+
+   #if __amd64
+	   #define NUM_SAVED 6
+	   "\tpushq %rbp\n"
+	   "\tpushq %rbx\n"
+	   "\tpushq %r12\n"
+	   "\tpushq %r13\n"
+	   "\tpushq %r14\n"
+	   "\tpushq %r15\n"
+	   "\tmovq %rsp, (%rdi)\n"
+	   "\tmovq (%rsi), %rsp\n"
+	   "\tpopq %r15\n"
+	   "\tpopq %r14\n"
+	   "\tpopq %r13\n"
+	   "\tpopq %r12\n"
+	   "\tpopq %rbx\n"
+	   "\tpopq %rbp\n"
+   #else
+	 #error unsupported architecture
+   #endif
+
+	 "\tpopq %rcx\n"
+	 "\tjmpq *%rcx\n"
+);
+
+static void  __attribute__((used)) __wire_exit_c(wire_t* wire)
+{
+	// We exited from the wire, we shouldn't come back anymore
+	list_del(&wire->list);
+
+	// Invalidate memory in valgrind
+	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
+
+	// Now switch to the next wire
+	wire_schedule();
+
+	// We should never get back here!
+	abort();
+}
+
+/* This entry function will take the function to jump into and its argument
+ * from the stack and call it in the x86-64 abi fashion. The return function will already be setup on the stack.
+ *
+ * It will then also read the wire argument from the stack and call the C function to do the final wire exit.
+ */
+void _wire_entry();
+asm(
+	".text\n"
+	"_wire_entry:\n"
+		"popq %rcx\n"
+		"popq %rdi\n"
+		"call *%rcx\n"
+		"popq %rdi\n"
+		"jmp __wire_exit_c\n"
+);
+
+void coro_create(coro_context* ctx, coro_func coro, void *arg, void *sptr, size_t ssize)
+{
+	if (!coro)
+		return;
+
+	ctx->sp = (void **)(ssize + (char *)sptr - sizeof(void*));
+	*--ctx->sp = (wire_t*)ctx; // This means that ctx and wire must start at the same place
+	*--ctx->sp = arg;
+	*--ctx->sp = (void *)coro;
+	*--ctx->sp = (void*)_wire_entry;
+
+	ctx->sp -= NUM_SAVED;
+	memset (ctx->sp, 0, sizeof (*ctx->sp) * NUM_SAVED);
+}
+
+#else /* USE_LIBCORO */
+
+static void _exec(void* arg)
+{
+	wire_t* wire = arg;
+	wire->entry_point(wire->arg);
+
+	// We exited from the wire, we shouldn't come back anymore
+	list_del(&wire->list);
+
+#ifdef USE_VALGRIND
+	// Invalidate memory in valgrind
+	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
+#endif
+
+	// Now switch to the next wire
+	wire_schedule();
+
+	// We should never get back here!
+	abort();
+}
+
+#endif
 
 static wire_t *_wire_get_next(void)
 {
@@ -46,26 +152,6 @@ static void wire_schedule(void)
 	}
 }
 
-static void _exec(wire_t *wire)
-{
-    wire->entry_point(wire->arg);
-
-	// We exited from the wire, we shouldn't come back anymore
-	list_del(&wire->list);
-
-#ifdef USE_VALGRIND
-	// Invalidate memory in valgrind
-	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
-	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
-#endif
-
-	// Now switch to the next wire
-	wire_schedule();
-
-	// We should never get back here!
-	abort();
-}
-
 void wire_thread_init(void)
 {
 	memset(&g_wire_thread, 0, sizeof(g_wire_thread));
@@ -88,17 +174,20 @@ wire_t *wire_init(wire_t *wire, const char *name, void (*entry_point)(void *), v
 {
 	memset(wire, 0, sizeof(*wire));
 
-	strncpy(wire->name, name, sizeof(wire->name));
-	wire->name[sizeof(wire->name)-1] = 0;
+	strncpy(wire->name, name, sizeof(wire->name)-1);
 
-	wire->entry_point = entry_point;
-	wire->arg = wire_data;
 #ifdef USE_VALGRIND
 	wire->stack = stack;
 	wire->stack_size = stack_size;
 #endif
 
-	coro_create(&wire->ctx, (coro_func)_exec, wire, stack, stack_size);
+#if USE_LIBCORO
+	wire->entry_point = entry_point;
+	wire->arg = wire_data;
+	coro_create(&wire->ctx, _exec, wire, stack, stack_size);
+#else
+	coro_create(&wire->ctx, (coro_func)entry_point, wire_data, stack, stack_size);
+#endif
 	list_add_tail(&wire->list, &g_wire_thread.ready_list);
 	return wire;
 }
