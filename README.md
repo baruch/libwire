@@ -2,7 +2,6 @@ libwire    {#mainpage}
 ========
 
 [![Build Status](https://travis-ci.org/baruch/libwire.png?branch=master)](https://travis-ci.org/baruch/libwire)
-[![Coverage Status](https://coveralls.io/repos/baruch/libwire/badge.png?branch=master)](https://coveralls.io/r/baruch/libwire?branch=master)
 
 libwire is a user-space threading library that is intended to provide in C some semblance
 of the GoLang environment. Namely, lightweight user-space cooperative threading
