@@ -16,6 +16,23 @@ typedef void (*coro_func)(void *);
 
 static __thread struct wire_thread g_wire_thread;
 
+static void  __attribute__((used)) __attribute__((noreturn)) __wire_exit_c(wire_t* wire)
+{
+	// We exited from the wire, we shouldn't come back anymore
+	list_del(&wire->list);
+	//wire->cancelled = 0;
+
+	// Invalidate memory in valgrind
+	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
+	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
+
+	// Now switch to the next wire
+	wire_schedule();
+
+	// We should never get back here!
+	abort();
+}
+
 #if !USE_LIBCORO
 
 void coro_transfer(coro_context* from, coro_context* to);
@@ -46,22 +63,6 @@ asm (
 	 "\tpopq %rcx\n"
 	 "\tjmpq *%rcx\n"
 );
-
-static void  __attribute__((used)) __wire_exit_c(wire_t* wire)
-{
-	// We exited from the wire, we shouldn't come back anymore
-	list_del(&wire->list);
-
-	// Invalidate memory in valgrind
-	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
-	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
-
-	// Now switch to the next wire
-	wire_schedule();
-
-	// We should never get back here!
-	abort();
-}
 
 /* This entry function will take the function to jump into and its argument
  * from the stack and call it in the x86-64 abi fashion. The return function will already be setup on the stack.
@@ -100,21 +101,7 @@ static void _exec(void* arg)
 {
 	wire_t* wire = arg;
 	wire->entry_point(wire->arg);
-
-	// We exited from the wire, we shouldn't come back anymore
-	list_del(&wire->list);
-
-#ifdef USE_VALGRIND
-	// Invalidate memory in valgrind
-	VALGRIND_MAKE_MEM_UNDEFINED(wire->stack, wire->stack_size);
-	VALGRIND_MAKE_MEM_UNDEFINED(wire, sizeof(*wire));
-#endif
-
-	// Now switch to the next wire
-	wire_schedule();
-
-	// We should never get back here!
-	abort();
+	__wire_exit_c(wire);
 }
 
 #endif
