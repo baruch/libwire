@@ -171,6 +171,13 @@ API.
 
 The coroutine core uses libcoro to provide support for multiple architectures.
 
+License
+=======
+
+libwire itself is licensed under the MIT license (see the LICENSE file),
+libcoro is licensed under the GNU GPL v2 or later (used on non x86-64, non-linux arches)
+http_parser is licensed under the nginx license (see src/http_parser.c)
+
 Author
 ======
 
