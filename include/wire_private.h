@@ -13,6 +13,7 @@ typedef struct coro_context {
 struct wire {
 	coro_context ctx; // This must be first in the wire
 	struct list_head list;
+	volatile int cancelled;
 	char name[32];
 #if USE_LIBCORO
 	void (*entry_point)(void*);

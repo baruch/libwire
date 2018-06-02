@@ -136,7 +136,16 @@ static void wire_schedule(void)
 #endif
 		g_wire_thread.running_wire = wire;
 		coro_transfer(&from->ctx, &wire->ctx);
+		if (__builtin_expect(from->cancelled, 0)) {
+			// TODO: call all deferred cleanups
+			__wire_exit_c(from);
+		}
 	}
+}
+
+void wire_cancel(wire_t* wire)
+{
+	wire->cancelled = 1;
 }
 
 void wire_thread_init(void)

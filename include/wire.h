@@ -55,6 +55,10 @@ void wire_resume(wire_t *wire);
  */
 void wire_suspend(void);
 
+/** Cancel the given wire. This will cause that wire to be immediately terminated when it gets scheduled next time.
+ */
+void wire_cancel(wire_t* wire);
+
 /** Initialize a wire and puts it on the ready list.
  *
  * You should give it an allocated wire to initialize, the name of the wire,
