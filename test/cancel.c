@@ -1,5 +1,6 @@
 #include "wire.h"
 #include "wire_stack.h"
+#include "wire_defer.h"
 #include "macros.h"
 #include <stdio.h>
 
@@ -9,6 +10,7 @@ static wire_t task_canceller;
 static void to_cancel(void *arg)
 {
 	printf("First print\n");
+	DEFER({ printf("Cleanup in cancelled wire\n"); });
 	wire_yield();
 	printf("Second print (shouldn't happen)\n");
 }

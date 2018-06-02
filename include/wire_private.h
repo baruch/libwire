@@ -10,10 +10,16 @@ typedef struct coro_context {
 } coro_context;
 #endif
 
+struct wire_defer_list {
+	struct wire_defer_list* next;
+	void (*cleanup)(struct wire_defer_list*);
+};
+
 struct wire {
 	coro_context ctx; // This must be first in the wire
 	struct list_head list;
 	volatile int cancelled;
+	struct wire_defer_list* cleanup_head;
 	char name[32];
 #if USE_LIBCORO
 	void (*entry_point)(void*);
