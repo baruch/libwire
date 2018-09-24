@@ -1,9 +1,6 @@
 language: c
 dist: trusty
 
-before_install:
-  - sudo pip install -U cpp-coveralls
-
 script: gcc -v && mkdir build && cd build && cmake .. && make VERBOSE=1 && test/base && test/waiters && test/channel && test/locks && test/pool && test/asyncio && test/bench && test/wait && test/log_stdout
 
 compiler:
@@ -12,8 +9,3 @@ compiler:
 
 env:
   - CFLAGS="-O3"
-  - CFLAGS="-O0 --coverage -DCOVERAGE" LDFLAGS="--coverage" COVERAGE=1
-
-after_success:
-  - echo "coverage is $COVERAGE"
-  - '[ -n "$COVERAGE" ] && echo "reporting coverage" && coveralls --exclude test --exclude include --exclude src/http_parser.c'
