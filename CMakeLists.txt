@@ -18,6 +18,12 @@ else()
         set(USE_CORO 1)
 endif()
 
+if( "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" )
+        set(WIRE_DEFER_SUPPORTED 1)
+else()
+        set(WIRE_DEFER_SUPPORTED 0)
+endif()
+
 add_subdirectory (src)
 
 if ( ${CMAKE_PROJECT_NAME} STREQUAL "LIBWIRE" )

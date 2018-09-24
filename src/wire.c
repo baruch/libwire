@@ -137,9 +137,11 @@ static void wire_schedule(void)
 		g_wire_thread.running_wire = wire;
 		coro_transfer(&from->ctx, &wire->ctx);
 		if (__builtin_expect(from->cancelled, 0)) {
+#if WIRE_DEFER_SUPPORTED
 			while (from->cleanup_head) {
 				from->cleanup_head->cleanup(from->cleanup_head);
 			}
+#endif
 			__wire_exit_c(from);
 		}
 	}

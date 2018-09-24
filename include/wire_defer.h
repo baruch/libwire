@@ -21,6 +21,10 @@
 #define DEFER_MERGE(a,b) a##b
 #define DEFER_VARNAME(a) DEFER_MERGE(defer_scopevar_, a)
 #define DEFER_FUNCNAME(a) DEFER_MERGE(defer_scopefunc_, a)
+
+#if WIRE_DEFER_SUPPORTED
+#if defined(__GNUC__) && !defined(__clang__)
+
 #define DEFER(BLOCK) \
 	void DEFER_FUNCNAME(__LINE__)(struct wire_defer_list *a) { \
 		wire_t* wire = wire_get_current(); \
@@ -34,5 +38,12 @@
 		DEFER_VARNAME(__LINE__).cleanup = DEFER_FUNCNAME(__LINE__); \
 		wire->cleanup_head = &DEFER_VARNAME(__LINE__); \
 	}
+
+#else
+
+#error wire_defer only works on gcc
+
+#endif
+#endif
 
 #endif

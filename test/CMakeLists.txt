@@ -38,5 +38,7 @@ target_link_libraries (wait LINK_PUBLIC wire)
 add_executable(log_stdout log_stdout.c)
 target_link_libraries (log_stdout LINK_PUBLIC wire)
 
+if( ${WIRE_DEFER_SUPPORTED} EQUAL 1)
 add_executable(cancel cancel.c)
 target_link_libraries (cancel LINK_PUBLIC wire)
+endif()

@@ -22,7 +22,7 @@ add_library (wire
     ${CORO_SRC}
 )
 add_definitions(-D_GNU_SOURCE)
-target_compile_definitions(wire PUBLIC USE_LIBCORO=${USE_CORO})
+target_compile_definitions(wire PUBLIC USE_LIBCORO=${USE_CORO} WIRE_DEFER_SUPPORTED=${WIRE_DEFER_SUPPORTED})
 
 target_compile_options(wire PRIVATE -Wno-deprecated-declarations)
 target_include_directories (wire PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
