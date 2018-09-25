@@ -29,14 +29,12 @@ enum wio_type {
 	IO_CLOSEDIR,
 	IO_READDIR_R,
 	IO_READDIR,
-	IO_READ_FILE_CONTENT,
 	IO_GLOB,
 	IO_GLOBFREE,
 	IO_POPEN,
 	IO_PCLOSE,
 	IO_FGETC,
 	IO_FGETS,
-	IO_SPAWN,
 	IO_KILL,
 	IO_FTW,
 	IO_NFTW,
@@ -240,13 +238,6 @@ struct wire_io_act {
             int verrno;
         } readdir;
         struct {
-            const char * filename;
-            char * buf;
-            size_t bufsz;
-            int ret;
-            int verrno;
-        } read_file_content;
-        struct {
             const char * pattern;
             int flags;
             glob_errfunc_t errfunc;
@@ -280,14 +271,6 @@ struct wire_io_act {
             char * ret;
             int verrno;
         } fgets;
-        struct {
-            char ** args;
-            int * stdin_fd;
-            int * stdout_fd;
-            int * stderr_fd;
-            int ret;
-            int verrno;
-        } spawn;
         struct {
             pid_t pid;
             int sig;
@@ -450,10 +433,6 @@ static void perform_action(struct wire_io_act *act)
             act->readdir.ret = readdir(act->readdir.dirp);
             act->readdir.verrno = errno;
             break;
-        case IO_READ_FILE_CONTENT:
-            act->read_file_content.ret = read_file_content(act->read_file_content.filename, act->read_file_content.buf, act->read_file_content.bufsz);
-            act->read_file_content.verrno = errno;
-            break;
         case IO_GLOB:
             act->glob.ret = glob(act->glob.pattern, act->glob.flags, act->glob.errfunc, act->glob.pglob);
             act->glob.verrno = errno;
@@ -476,10 +455,6 @@ static void perform_action(struct wire_io_act *act)
         case IO_FGETS:
             act->fgets.ret = fgets(act->fgets.s, act->fgets.size, act->fgets.stream);
             act->fgets.verrno = errno;
-            break;
-        case IO_SPAWN:
-            act->spawn.ret = spawn(act->spawn.args, act->spawn.stdin_fd, act->spawn.stdout_fd, act->spawn.stderr_fd);
-            act->spawn.verrno = errno;
             break;
         case IO_KILL:
             act->kill.ret = kill(act->kill.pid, act->kill.sig);
@@ -841,18 +816,6 @@ struct dirent * wio_readdir(DIR *dirp)
     return act.readdir.ret;
 }
 
-int wio_read_file_content(const char *filename, char *buf, size_t bufsz)
-{
-    struct wire_io_act act;
-    act.type = IO_READ_FILE_CONTENT;
-    act.read_file_content.filename = filename;
-    act.read_file_content.buf = buf;
-    act.read_file_content.bufsz = bufsz;
-    submit_action(&act.common);
-    errno = act.read_file_content.verrno;
-    return act.read_file_content.ret;
-}
-
 int wio_glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)
 {
     struct wire_io_act act;
@@ -915,19 +878,6 @@ char * wio_fgets(char *s, int size, FILE *stream)
     submit_action(&act.common);
     errno = act.fgets.verrno;
     return act.fgets.ret;
-}
-
-int wio_spawn(char **args, int *stdin_fd, int *stdout_fd, int *stderr_fd)
-{
-    struct wire_io_act act;
-    act.type = IO_SPAWN;
-    act.spawn.args = args;
-    act.spawn.stdin_fd = stdin_fd;
-    act.spawn.stdout_fd = stdout_fd;
-    act.spawn.stderr_fd = stderr_fd;
-    submit_action(&act.common);
-    errno = act.spawn.verrno;
-    return act.spawn.ret;
 }
 
 int wio_kill(pid_t pid, int sig)
