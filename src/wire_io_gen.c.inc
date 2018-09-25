@@ -959,3 +959,417 @@ int wio_dup2(int oldfd, int newfd)
     return act.dup2.ret;
 }
 
+static int (*orig_open)(const char *pathname, int flags, mode_t mode);
+static int (*orig_close)(int fd);
+static ssize_t (*orig_pread)(int fd, void *buf, size_t count, off_t offset);
+static ssize_t (*orig_pwrite)(int fd, const void *buf, size_t count, off_t offset);
+static ssize_t (*orig_read)(int fd, void *buf, size_t count);
+static ssize_t (*orig_write)(int fd, const void *buf, size_t count);
+static int (*orig_fstat)(int fd, struct stat *buf);
+static int (*orig_stat)(const char *path, struct stat *buf);
+static int (*orig_ftruncate)(int fd, off_t length);
+static int (*orig_fallocate)(int fd, int mode, off_t offset, off_t len);
+static int (*orig_fsync)(int fd);
+static int (*orig_statfs)(const char *path, struct statfs *buf);
+static int (*orig_fstatfs)(int fd, struct statfs *buf);
+static int (*orig_getaddrinfo)(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+static int (*orig_getnameinfo)(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags);
+static int (*orig_ioctl)(int d, unsigned long request, void *argp);
+static int (*orig_getifaddrs)(struct ifaddrs **ifap);
+static ssize_t (*orig_readv)(int fd, const struct iovec *iov, int iovcnt);
+static ssize_t (*orig_writev)(int fd, const struct iovec *iov, int iovcnt);
+static ssize_t (*orig_preadv)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+static ssize_t (*orig_pwritev)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+static void * (*orig_mmap)(void *addr, size_t length, int protc, int flags, int fd, off_t offset);
+static int (*orig_munmap)(void *addr, size_t length);
+static DIR * (*orig_opendir)(const char *name);
+static DIR * (*orig_fdopendir)(int fd);
+static int (*orig_closedir)(DIR *dirp);
+static int (*orig_readdir_r)(DIR *dirp, struct dirent *entry, struct dirent **result);
+static struct dirent * (*orig_readdir)(DIR *dirp);
+static int (*orig_glob)(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob);
+static void (*orig_globfree)(glob_t *pglob);
+static FILE * (*orig_popen)(const char *command, const char *type);
+static int (*orig_pclose)(FILE *stream);
+static int (*orig_fgetc)(FILE *stream);
+static char * (*orig_fgets)(char *s, int size, FILE *stream);
+static int (*orig_kill)(pid_t pid, int sig);
+static int (*orig_ftw)(const char *dirpath, ftw_cb_t cb, int nopenfd);
+static int (*orig_nftw)(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags);
+static pid_t (*orig_wait)(int *status);
+static pid_t (*orig_waitpid)(pid_t pid, int *status, int options);
+static int (*orig_dup)(int oldfd);
+static int (*orig_dup2)(int oldfd, int newfd);
+__attribute__((constructor)) static void wire_dlsym_init(void)
+{
+    orig_close = dlsym(RTLD_NEXT, "close");
+    if (orig_close == NULL) { fputs("Failed to get address of close\n", stderr); abort(); }
+    orig_pread = dlsym(RTLD_NEXT, "pread");
+    if (orig_pread == NULL) { fputs("Failed to get address of pread\n", stderr); abort(); }
+    orig_pwrite = dlsym(RTLD_NEXT, "pwrite");
+    if (orig_pwrite == NULL) { fputs("Failed to get address of pwrite\n", stderr); abort(); }
+    orig_read = dlsym(RTLD_NEXT, "read");
+    if (orig_read == NULL) { fputs("Failed to get address of read\n", stderr); abort(); }
+    orig_write = dlsym(RTLD_NEXT, "write");
+    if (orig_write == NULL) { fputs("Failed to get address of write\n", stderr); abort(); }
+    orig_ftruncate = dlsym(RTLD_NEXT, "ftruncate");
+    if (orig_ftruncate == NULL) { fputs("Failed to get address of ftruncate\n", stderr); abort(); }
+    orig_fallocate = dlsym(RTLD_NEXT, "fallocate");
+    if (orig_fallocate == NULL) { fputs("Failed to get address of fallocate\n", stderr); abort(); }
+    orig_fsync = dlsym(RTLD_NEXT, "fsync");
+    if (orig_fsync == NULL) { fputs("Failed to get address of fsync\n", stderr); abort(); }
+    orig_statfs = dlsym(RTLD_NEXT, "statfs");
+    if (orig_statfs == NULL) { fputs("Failed to get address of statfs\n", stderr); abort(); }
+    orig_fstatfs = dlsym(RTLD_NEXT, "fstatfs");
+    if (orig_fstatfs == NULL) { fputs("Failed to get address of fstatfs\n", stderr); abort(); }
+    orig_getaddrinfo = dlsym(RTLD_NEXT, "getaddrinfo");
+    if (orig_getaddrinfo == NULL) { fputs("Failed to get address of getaddrinfo\n", stderr); abort(); }
+    orig_getnameinfo = dlsym(RTLD_NEXT, "getnameinfo");
+    if (orig_getnameinfo == NULL) { fputs("Failed to get address of getnameinfo\n", stderr); abort(); }
+    orig_getifaddrs = dlsym(RTLD_NEXT, "getifaddrs");
+    if (orig_getifaddrs == NULL) { fputs("Failed to get address of getifaddrs\n", stderr); abort(); }
+    orig_readv = dlsym(RTLD_NEXT, "readv");
+    if (orig_readv == NULL) { fputs("Failed to get address of readv\n", stderr); abort(); }
+    orig_writev = dlsym(RTLD_NEXT, "writev");
+    if (orig_writev == NULL) { fputs("Failed to get address of writev\n", stderr); abort(); }
+    orig_preadv = dlsym(RTLD_NEXT, "preadv");
+    if (orig_preadv == NULL) { fputs("Failed to get address of preadv\n", stderr); abort(); }
+    orig_pwritev = dlsym(RTLD_NEXT, "pwritev");
+    if (orig_pwritev == NULL) { fputs("Failed to get address of pwritev\n", stderr); abort(); }
+    orig_mmap = dlsym(RTLD_NEXT, "mmap");
+    if (orig_mmap == NULL) { fputs("Failed to get address of mmap\n", stderr); abort(); }
+    orig_munmap = dlsym(RTLD_NEXT, "munmap");
+    if (orig_munmap == NULL) { fputs("Failed to get address of munmap\n", stderr); abort(); }
+    orig_opendir = dlsym(RTLD_NEXT, "opendir");
+    if (orig_opendir == NULL) { fputs("Failed to get address of opendir\n", stderr); abort(); }
+    orig_fdopendir = dlsym(RTLD_NEXT, "fdopendir");
+    if (orig_fdopendir == NULL) { fputs("Failed to get address of fdopendir\n", stderr); abort(); }
+    orig_closedir = dlsym(RTLD_NEXT, "closedir");
+    if (orig_closedir == NULL) { fputs("Failed to get address of closedir\n", stderr); abort(); }
+    orig_readdir_r = dlsym(RTLD_NEXT, "readdir_r");
+    if (orig_readdir_r == NULL) { fputs("Failed to get address of readdir_r\n", stderr); abort(); }
+    orig_readdir = dlsym(RTLD_NEXT, "readdir");
+    if (orig_readdir == NULL) { fputs("Failed to get address of readdir\n", stderr); abort(); }
+    orig_glob = dlsym(RTLD_NEXT, "glob");
+    if (orig_glob == NULL) { fputs("Failed to get address of glob\n", stderr); abort(); }
+    orig_globfree = dlsym(RTLD_NEXT, "globfree");
+    if (orig_globfree == NULL) { fputs("Failed to get address of globfree\n", stderr); abort(); }
+    orig_popen = dlsym(RTLD_NEXT, "popen");
+    if (orig_popen == NULL) { fputs("Failed to get address of popen\n", stderr); abort(); }
+    orig_pclose = dlsym(RTLD_NEXT, "pclose");
+    if (orig_pclose == NULL) { fputs("Failed to get address of pclose\n", stderr); abort(); }
+    orig_fgetc = dlsym(RTLD_NEXT, "fgetc");
+    if (orig_fgetc == NULL) { fputs("Failed to get address of fgetc\n", stderr); abort(); }
+    orig_fgets = dlsym(RTLD_NEXT, "fgets");
+    if (orig_fgets == NULL) { fputs("Failed to get address of fgets\n", stderr); abort(); }
+    orig_kill = dlsym(RTLD_NEXT, "kill");
+    if (orig_kill == NULL) { fputs("Failed to get address of kill\n", stderr); abort(); }
+    orig_ftw = dlsym(RTLD_NEXT, "ftw");
+    if (orig_ftw == NULL) { fputs("Failed to get address of ftw\n", stderr); abort(); }
+    orig_nftw = dlsym(RTLD_NEXT, "nftw");
+    if (orig_nftw == NULL) { fputs("Failed to get address of nftw\n", stderr); abort(); }
+    orig_wait = dlsym(RTLD_NEXT, "wait");
+    if (orig_wait == NULL) { fputs("Failed to get address of wait\n", stderr); abort(); }
+    orig_waitpid = dlsym(RTLD_NEXT, "waitpid");
+    if (orig_waitpid == NULL) { fputs("Failed to get address of waitpid\n", stderr); abort(); }
+    orig_dup = dlsym(RTLD_NEXT, "dup");
+    if (orig_dup == NULL) { fputs("Failed to get address of dup\n", stderr); abort(); }
+    orig_dup2 = dlsym(RTLD_NEXT, "dup2");
+    if (orig_dup2 == NULL) { fputs("Failed to get address of dup2\n", stderr); abort(); }
+}
+int close(int fd)
+{
+    if (is_wire_thread) {
+        return wio_close(fd);
+    } else {
+        return orig_close(fd);
+    }
+}
+ssize_t pread(int fd, void *buf, size_t count, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_pread(fd, buf, count, offset);
+    } else {
+        return orig_pread(fd, buf, count, offset);
+    }
+}
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_pwrite(fd, buf, count, offset);
+    } else {
+        return orig_pwrite(fd, buf, count, offset);
+    }
+}
+ssize_t read(int fd, void *buf, size_t count)
+{
+    if (is_wire_thread) {
+        return wio_read(fd, buf, count);
+    } else {
+        return orig_read(fd, buf, count);
+    }
+}
+ssize_t write(int fd, const void *buf, size_t count)
+{
+    if (is_wire_thread) {
+        return wio_write(fd, buf, count);
+    } else {
+        return orig_write(fd, buf, count);
+    }
+}
+int ftruncate(int fd, off_t length)
+{
+    if (is_wire_thread) {
+        return wio_ftruncate(fd, length);
+    } else {
+        return orig_ftruncate(fd, length);
+    }
+}
+int fallocate(int fd, int mode, off_t offset, off_t len)
+{
+    if (is_wire_thread) {
+        return wio_fallocate(fd, mode, offset, len);
+    } else {
+        return orig_fallocate(fd, mode, offset, len);
+    }
+}
+int fsync(int fd)
+{
+    if (is_wire_thread) {
+        return wio_fsync(fd);
+    } else {
+        return orig_fsync(fd);
+    }
+}
+int statfs(const char *path, struct statfs *buf)
+{
+    if (is_wire_thread) {
+        return wio_statfs(path, buf);
+    } else {
+        return orig_statfs(path, buf);
+    }
+}
+int fstatfs(int fd, struct statfs *buf)
+{
+    if (is_wire_thread) {
+        return wio_fstatfs(fd, buf);
+    } else {
+        return orig_fstatfs(fd, buf);
+    }
+}
+int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
+{
+    if (is_wire_thread) {
+        return wio_getaddrinfo(node, service, hints, res);
+    } else {
+        return orig_getaddrinfo(node, service, hints, res);
+    }
+}
+int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags)
+{
+    if (is_wire_thread) {
+        return wio_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
+    } else {
+        return orig_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
+    }
+}
+int getifaddrs(struct ifaddrs **ifap)
+{
+    if (is_wire_thread) {
+        return wio_getifaddrs(ifap);
+    } else {
+        return orig_getifaddrs(ifap);
+    }
+}
+ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
+{
+    if (is_wire_thread) {
+        return wio_readv(fd, iov, iovcnt);
+    } else {
+        return orig_readv(fd, iov, iovcnt);
+    }
+}
+ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
+{
+    if (is_wire_thread) {
+        return wio_writev(fd, iov, iovcnt);
+    } else {
+        return orig_writev(fd, iov, iovcnt);
+    }
+}
+ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_preadv(fd, iov, iovcnt, offset);
+    } else {
+        return orig_preadv(fd, iov, iovcnt, offset);
+    }
+}
+ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_pwritev(fd, iov, iovcnt, offset);
+    } else {
+        return orig_pwritev(fd, iov, iovcnt, offset);
+    }
+}
+void * mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_mmap(addr, length, protc, flags, fd, offset);
+    } else {
+        return orig_mmap(addr, length, protc, flags, fd, offset);
+    }
+}
+int munmap(void *addr, size_t length)
+{
+    if (is_wire_thread) {
+        return wio_munmap(addr, length);
+    } else {
+        return orig_munmap(addr, length);
+    }
+}
+DIR * opendir(const char *name)
+{
+    if (is_wire_thread) {
+        return wio_opendir(name);
+    } else {
+        return orig_opendir(name);
+    }
+}
+DIR * fdopendir(int fd)
+{
+    if (is_wire_thread) {
+        return wio_fdopendir(fd);
+    } else {
+        return orig_fdopendir(fd);
+    }
+}
+int closedir(DIR *dirp)
+{
+    if (is_wire_thread) {
+        return wio_closedir(dirp);
+    } else {
+        return orig_closedir(dirp);
+    }
+}
+int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
+{
+    if (is_wire_thread) {
+        return wio_readdir_r(dirp, entry, result);
+    } else {
+        return orig_readdir_r(dirp, entry, result);
+    }
+}
+struct dirent * readdir(DIR *dirp)
+{
+    if (is_wire_thread) {
+        return wio_readdir(dirp);
+    } else {
+        return orig_readdir(dirp);
+    }
+}
+int glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)
+{
+    if (is_wire_thread) {
+        return wio_glob(pattern, flags, errfunc, pglob);
+    } else {
+        return orig_glob(pattern, flags, errfunc, pglob);
+    }
+}
+void globfree(glob_t *pglob)
+{
+    if (is_wire_thread) {
+        return wio_globfree(pglob);
+    } else {
+        return orig_globfree(pglob);
+    }
+}
+FILE * popen(const char *command, const char *type)
+{
+    if (is_wire_thread) {
+        return wio_popen(command, type);
+    } else {
+        return orig_popen(command, type);
+    }
+}
+int pclose(FILE *stream)
+{
+    if (is_wire_thread) {
+        return wio_pclose(stream);
+    } else {
+        return orig_pclose(stream);
+    }
+}
+int fgetc(FILE *stream)
+{
+    if (is_wire_thread) {
+        return wio_fgetc(stream);
+    } else {
+        return orig_fgetc(stream);
+    }
+}
+char * fgets(char *s, int size, FILE *stream)
+{
+    if (is_wire_thread) {
+        return wio_fgets(s, size, stream);
+    } else {
+        return orig_fgets(s, size, stream);
+    }
+}
+int kill(pid_t pid, int sig)
+{
+    if (is_wire_thread) {
+        return wio_kill(pid, sig);
+    } else {
+        return orig_kill(pid, sig);
+    }
+}
+int ftw(const char *dirpath, ftw_cb_t cb, int nopenfd)
+{
+    if (is_wire_thread) {
+        return wio_ftw(dirpath, cb, nopenfd);
+    } else {
+        return orig_ftw(dirpath, cb, nopenfd);
+    }
+}
+int nftw(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags)
+{
+    if (is_wire_thread) {
+        return wio_nftw(dirpath, cb, nopenfd, flags);
+    } else {
+        return orig_nftw(dirpath, cb, nopenfd, flags);
+    }
+}
+pid_t wait(int *status)
+{
+    if (is_wire_thread) {
+        return wio_wait(status);
+    } else {
+        return orig_wait(status);
+    }
+}
+pid_t waitpid(pid_t pid, int *status, int options)
+{
+    if (is_wire_thread) {
+        return wio_waitpid(pid, status, options);
+    } else {
+        return orig_waitpid(pid, status, options);
+    }
+}
+int dup(int oldfd)
+{
+    if (is_wire_thread) {
+        return wio_dup(oldfd);
+    } else {
+        return orig_dup(oldfd);
+    }
+}
+int dup2(int oldfd, int newfd)
+{
+    if (is_wire_thread) {
+        return wio_dup2(oldfd, newfd);
+    } else {
+        return orig_dup2(oldfd, newfd);
+    }
+}

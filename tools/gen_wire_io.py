@@ -26,14 +26,14 @@ typedefs = [
         ]
 
 syscalls = [
-        "int open(const char *pathname, int flags, mode_t mode)",
+        ("int open(const char *pathname, int flags, mode_t mode)", ),
         "int close(int fd)",
         "ssize_t pread(int fd, void *buf, size_t count, off_t offset)",
         "ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)",
         "ssize_t read(int fd, void *buf, size_t count)",
         "ssize_t write(int fd, const void *buf, size_t count)",
-        "int fstat(int fd, struct stat *buf)",
-        "int stat(const char *path, struct stat *buf)",
+        ("int fstat(int fd, struct stat *buf)",),
+        ("int stat(const char *path, struct stat *buf)",),
         "int ftruncate(int fd, off_t length)",
         "int fallocate(int fd, int mode, off_t offset, off_t len)",
         "int fsync(int fd)",
@@ -41,7 +41,7 @@ syscalls = [
         "int fstatfs(int fd, struct statfs *buf)",
         "int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)",
         "int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags)",
-        "int ioctl(int d, unsigned long request, void *argp)",
+        ("int ioctl(int d, unsigned long request, void *argp)", ),
         "int getifaddrs(struct ifaddrs **ifap)",
         "ssize_t readv(int fd, const struct iovec *iov, int iovcnt)",
         "ssize_t writev(int fd, const struct iovec *iov, int iovcnt)",
@@ -84,37 +84,56 @@ if gen_header_file and gen_c_file:
     sys.exit(2)
 
 decl_re = re.compile(r'^([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)\((.*)\)$')
-arg_re = re.compile(r'^ ?([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+) ?$')
+#arg_re = re.compile(r'^ ?(?:([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)) ?$')
+arg_re = re.compile(r'^ ?(?:([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)|()(\.\.\.)) ?$')
 
 def strip_list(l):
     if type(l) == str or type(l) == unicode:
         return l.strip()
     return map(strip_list, l)
 
-def parse_decl(decl):
-    m = decl_re.match(decl)
-    if m is None:
-        raise BaseException("Declaration '%s' failed to parse by regex" % decl)
+class FuncDecl(object):
+    def __init__(self, decl):
+        if type(decl) == list or type(decl) == tuple:
+            decl = decl[0]
+            self.is_special = True
+        else:
+            self.is_special = False
 
-    ret_type, func_name, args_full = m.groups()
-    args = args_full.split(',')
-    argd = []
-    if len(args[0]) > 0:
-        for arg in args:
-            m = arg_re.match(arg)
-            if m is None:
-                raise BaseException("Argument '%s' cannot be parsed by regex" % arg)
-            argd.append(m.groups())
-    ret = (ret_type, func_name, args_full, argd)
-    return strip_list(ret)
+        m = decl_re.match(decl)
+        if m is None:
+            raise BaseException("Declaration '%s' failed to parse by regex" % decl)
 
-parsed_decl = map(parse_decl, syscalls)
+        self.ret_type, self.func_name, self.args_full = m.groups()
+        args = self.args_full.split(',')
+        self.argd = []
+        if len(args[0]) > 0:
+            for arg in args:
+                m = arg_re.match(arg)
+                if m is None:
+                    raise BaseException("Argument '%s' cannot be parsed by regex" % arg)
+                g = (m.group(1), m.group(2))
+                if g[0] is None or g[1] is None:
+                    g = (m.group(3), m.group(4))
+                self.argd.append(g)
+
+        self.ret_type = strip_list(self.ret_type)
+        self.func_name = strip_list(self.func_name);
+        self.args_full = strip_list(self.args_full)
+        self.argd = strip_list(self.argd)
+
+parsed_decl = map(lambda x: FuncDecl(x), syscalls)
 
 def enum_name(decl):
-    return 'IO_' + decl[1].upper()
+    return 'IO_' + decl.func_name.upper()
 
 def args_call(decl):
-    parts = map(lambda arg: 'act->%s.%s' % (decl[1], arg[1]), decl[3])
+    parts = map(lambda arg: 'act->%s.%s' % (decl.func_name, arg[1]), decl.argd)
+    return ', '.join(parts)
+
+def args_call_2(args):
+    if len(args) == 0: return ''
+    parts = map(lambda arg: arg[1], args)
     return ', '.join(parts)
 
 if gen_header_file:
@@ -126,7 +145,7 @@ if gen_header_file:
     for typedef in typedefs:
         print typedef, ";"
     for decl in parsed_decl:
-        print '%s wio_%s(%s);' % (decl[0], decl[1], decl[2])
+        print '%s wio_%s(%s);' % (decl.ret_type, decl.func_name, decl.args_full)
     print
     print '#endif'
 else:
@@ -143,12 +162,12 @@ else:
     print '    union {'
     for decl in parsed_decl:
         print '        struct {'
-        for arg in decl[3]:
+        for arg in decl.argd:
             print '            %s %s;' % (arg[0], arg[1])
-        if decl[0] != 'void':
-            print '            %s ret;' % decl[0]
+        if decl.ret_type != 'void':
+            print '            %s ret;' % decl.ret_type
             print '            int verrno;'
-        print '        } %s;' % decl[1]
+        print '        } %s;' % decl.func_name
     print '    };'
     print '};'
     print
@@ -157,25 +176,48 @@ else:
     print '    switch (act->type) {'
     for decl in parsed_decl:
         print '        case %s:' % enum_name(decl)
-        if decl[0] != 'void':
-            print '            act->%s.ret = %s(%s);' % (decl[1], decl[1], args_call(decl))
-            print '            act->%s.verrno = errno;' % decl[1]
+        if decl.ret_type != 'void':
+            print '            act->%s.ret = %s(%s);' % (decl.func_name, decl.func_name, args_call(decl))
+            print '            act->%s.verrno = errno;' % decl.func_name
         else:
-            print '            %s(%s);' % (decl[1], args_call(decl))
+            print '            %s(%s);' % (decl.func_name, args_call(decl))
         print '            break;'
     print '    }'
     print '}'
     print
     for decl in parsed_decl:
-        print '%s wio_%s(%s)' % (decl[0], decl[1], decl[2])
+        print '%s wio_%s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
         print '{'
         print '    struct wire_io_act act;'
         print '    act.type = %s;' % enum_name(decl)
-        for arg in decl[3]:
-            print '    act.%s.%s = %s;' % (decl[1], arg[1], arg[1])
+        for arg in decl.argd:
+            print '    act.%s.%s = %s;' % (decl.func_name, arg[1], arg[1])
         print '    submit_action(&act.common);'
-        if decl[0] != 'void':
-            print '    errno = act.%s.verrno;' % decl[1]
-            print '    return act.%s.ret;' % decl[1]
+        if decl.ret_type != 'void':
+            print '    errno = act.%s.verrno;' % decl.func_name
+            print '    return act.%s.ret;' % decl.func_name
         print '}'
         print
+
+    for decl in parsed_decl:
+        print 'static %s (*orig_%s)(%s);' % (decl.ret_type, decl.func_name, decl.args_full)
+
+    print '__attribute__((constructor)) static void wire_dlsym_init(void)'
+    print '{'
+    for decl in parsed_decl:
+        if decl.is_special: continue
+        print '    orig_%s = dlsym(RTLD_NEXT, "%s");' % (decl.func_name, decl.func_name)
+        print '    if (orig_%s == NULL) { fputs("Failed to get address of %s\\n", stderr); abort(); }' % (decl.func_name, decl.func_name)
+    print '}'
+
+    for decl in parsed_decl:
+        if decl.is_special: continue
+
+        print '%s %s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
+        print '{'
+        print '    if (is_wire_thread) {'
+        print '        return wio_%s(%s);' % (decl.func_name, args_call_2(decl.argd))
+        print '    } else {'
+        print '        return orig_%s(%s);' % (decl.func_name, args_call_2(decl.argd))
+        print '    }'
+        print '}'

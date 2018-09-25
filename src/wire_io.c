@@ -12,6 +12,8 @@
 #include <sys/socket.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <dlfcn.h>
+#include <assert.h>
 
 struct wire_io {
 	pthread_mutex_t mutex;
@@ -25,6 +27,7 @@ struct wire_io {
 };
 
 static __thread struct wire_io wire_io;
+static __thread bool is_wire_thread;
 
 struct wire_io_act_common {
 	struct list_head elem;
@@ -121,6 +124,7 @@ static void *wire_io_thread(void *arg)
 {
     struct wire_io* wire_io = (struct wire_io*)arg;
 	block_signals();
+	is_wire_thread = false;
 
 	while (1) {
 		struct wire_io_act *act = get_action(wire_io);
@@ -145,7 +149,7 @@ static void wire_io_response(void *UNUSED(arg))
 		static const unsigned MAX_RESPONSES = 32;
 		struct wire_io_act *act[MAX_RESPONSES];
 		bool go_to_sleep = false;
-		ssize_t ret = read(wire_io.response_recv_fd, act, sizeof(act));
+		ssize_t ret = orig_read(wire_io.response_recv_fd, act, sizeof(act));
 		if (ret > 0) {
 			unsigned i;
 			const unsigned num_ret = ret / sizeof(act[0]);
@@ -218,4 +222,6 @@ void wire_io_init(int num_threads)
 		pthread_t th;
 		pthread_create(&th, NULL, wire_io_thread, &wire_io);
 	}
+
+	is_wire_thread = true;
 }

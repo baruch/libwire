@@ -26,4 +26,4 @@ target_compile_definitions(wire PUBLIC USE_LIBCORO=${USE_CORO} WIRE_DEFER_SUPPOR
 
 target_compile_options(wire PRIVATE -Wno-deprecated-declarations)
 target_include_directories (wire PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-target_link_libraries(wire PUBLIC pthread)
+target_link_libraries(wire PUBLIC pthread dl)
