@@ -40,7 +40,7 @@ syscalls = [
         "int statfs(const char *path, struct statfs *buf)",
         "int fstatfs(int fd, struct statfs *buf)",
         "int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)",
-        "int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen, int flags)",
+        "int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags)",
         "int ioctl(int d, unsigned long request, void *argp)",
         "int getifaddrs(struct ifaddrs **ifap)",
         "ssize_t readv(int fd, const struct iovec *iov, int iovcnt)",
