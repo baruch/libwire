@@ -147,9 +147,9 @@ struct wire_io_act {
             const struct sockaddr * sa;
             socklen_t salen;
             char * host;
-            size_t hostlen;
+            socklen_t hostlen;
             char * serv;
-            size_t servlen;
+            socklen_t servlen;
             int flags;
             int ret;
             int verrno;
@@ -675,7 +675,7 @@ int wio_getaddrinfo(const char *node, const char *service, const struct addrinfo
     return act.getaddrinfo.ret;
 }
 
-int wio_getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *serv, size_t servlen, int flags)
+int wio_getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags)
 {
     struct wire_io_act act;
     act.type = IO_GETNAMEINFO;
