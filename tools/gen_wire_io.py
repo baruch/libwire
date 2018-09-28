@@ -85,7 +85,7 @@ if gen_header_file and gen_c_file:
 
 decl_re = re.compile(r'^([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)\((.*)\)$')
 #arg_re = re.compile(r'^ ?(?:([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)) ?$')
-arg_re = re.compile(r'^ ?(?:([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)|()(\.\.\.)) ?$')
+arg_re = re.compile(r'^ ?(?:([A-Za-z_* 0-9]+[* ])([A-Za-z0-9_]+)|()(\.\.\.)|(void)()) ?$')
 
 def strip_list(l):
     if type(l) == str or type(l) == unicode:
@@ -115,6 +115,8 @@ class FuncDecl(object):
                 g = (m.group(1), m.group(2))
                 if g[0] is None or g[1] is None:
                     g = (m.group(3), m.group(4))
+                    if g[0] is None and g[1] is None:
+                        continue
                 self.argd.append(g)
 
         self.ret_type = strip_list(self.ret_type)
