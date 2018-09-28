@@ -42,8 +42,11 @@ static void io(void *arg)
 	ret = wio_fsync(fd);
 	assert(ret == 0);
 
-	LOG("wio_pread");
+	LOG("use read from dlsym");
 	char buf[64];
+	read(fd, buf, sizeof(buf));
+
+	LOG("wio_pread");
 	ret = wio_pread(fd, buf, sizeof(buf), 0);
 	assert(ret == (int)strlen(filename));
 	assert(memcmp(buf, filename, strlen(filename)) == 0);
