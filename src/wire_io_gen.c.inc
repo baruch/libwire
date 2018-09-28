@@ -9,9 +9,14 @@ enum wio_type {
 	IO_WRITE,
 	IO_FSTAT,
 	IO_STAT,
+	IO_LSEEK,
+	IO_LSEEK64,
 	IO_FTRUNCATE,
+	IO_TRUNCATE,
 	IO_FALLOCATE,
 	IO_FSYNC,
+	IO_SYNC,
+	IO_FDATASYNC,
 	IO_STATFS,
 	IO_FSTATFS,
 	IO_GETADDRINFO,
@@ -42,6 +47,34 @@ enum wio_type {
 	IO_WAITPID,
 	IO_DUP,
 	IO_DUP2,
+	IO_ALARM,
+	IO_UALARM,
+	IO_CHOWN,
+	IO_FCHOWN,
+	IO_LCHOWN,
+	IO_FCHOWNAT,
+	IO_FCHDIR,
+	IO_GETCWD,
+	IO_EXECVE,
+	IO_EXECV,
+	IO_EXECVPE,
+	IO_GETPID,
+	IO_GETPPID,
+	IO_GETPGRP,
+	IO_GETPGID,
+	IO_SETPGID,
+	IO_SETPGRP,
+	IO_SETSID,
+	IO_GETSID,
+	IO_GETUID,
+	IO_GETEUID,
+	IO_GETGID,
+	IO_FORK,
+	IO_LINK,
+	IO_SYMLINK,
+	IO_READLINK,
+	IO_UNLINK,
+	IO_RMDIR,
 };
 
 struct wire_io_act {
@@ -104,10 +137,30 @@ struct wire_io_act {
         } stat;
         struct {
             int fd;
+            off_t offset;
+            int whence;
+            off_t ret;
+            int verrno;
+        } lseek;
+        struct {
+            int fd;
+            off64_t offset;
+            int whence;
+            off64_t ret;
+            int verrno;
+        } lseek64;
+        struct {
+            int fd;
             off_t length;
             int ret;
             int verrno;
         } ftruncate;
+        struct {
+            const char* filename;
+            off_t offset;
+            int ret;
+            int verrno;
+        } truncate;
         struct {
             int fd;
             int mode;
@@ -121,6 +174,13 @@ struct wire_io_act {
             int ret;
             int verrno;
         } fsync;
+        struct {
+        } sync;
+        struct {
+            int fd;
+            int ret;
+            int verrno;
+        } fdatasync;
         struct {
             const char * path;
             struct statfs * buf;
@@ -315,6 +375,159 @@ struct wire_io_act {
             int ret;
             int verrno;
         } dup2;
+        struct {
+            unsigned int seconds;
+            unsigned int ret;
+            int verrno;
+        } alarm;
+        struct {
+            unsigned value;
+            unsigned interval;
+            unsigned int ret;
+            int verrno;
+        } ualarm;
+        struct {
+            const char * filename;
+            uid_t owner;
+            gid_t group;
+            int ret;
+            int verrno;
+        } chown;
+        struct {
+            int fd;
+            uid_t owner;
+            gid_t group;
+            int ret;
+            int verrno;
+        } fchown;
+        struct {
+            const char* filename;
+            uid_t owner;
+            gid_t group;
+            int ret;
+            int verrno;
+        } lchown;
+        struct {
+            int fd;
+            const char* filename;
+            uid_t owner;
+            gid_t group;
+            int flag;
+            int ret;
+            int verrno;
+        } fchownat;
+        struct {
+            int fd;
+            int ret;
+            int verrno;
+        } fchdir;
+        struct {
+            char* buf;
+            size_t size;
+            char* ret;
+            int verrno;
+        } getcwd;
+        struct {
+            const char* path;
+            char *const* argv;
+            char *const* envp;
+            int ret;
+            int verrno;
+        } execve;
+        struct {
+            const char* path;
+            char *const* argv;
+            int ret;
+            int verrno;
+        } execv;
+        struct {
+            const char* file;
+            char *const* argv;
+            char *const* envp;
+            int ret;
+            int verrno;
+        } execvpe;
+        struct {
+            pid_t ret;
+            int verrno;
+        } getpid;
+        struct {
+            pid_t ret;
+            int verrno;
+        } getppid;
+        struct {
+            pid_t ret;
+            int verrno;
+        } getpgrp;
+        struct {
+            pid_t pid;
+            pid_t ret;
+            int verrno;
+        } getpgid;
+        struct {
+            pid_t pid;
+            pid_t pgid;
+            int ret;
+            int verrno;
+        } setpgid;
+        struct {
+            int ret;
+            int verrno;
+        } setpgrp;
+        struct {
+            pid_t ret;
+            int verrno;
+        } setsid;
+        struct {
+            pid_t pid;
+            pid_t ret;
+            int verrno;
+        } getsid;
+        struct {
+            uid_t ret;
+            int verrno;
+        } getuid;
+        struct {
+            uid_t ret;
+            int verrno;
+        } geteuid;
+        struct {
+            gid_t ret;
+            int verrno;
+        } getgid;
+        struct {
+            pid_t ret;
+            int verrno;
+        } fork;
+        struct {
+            const char* from;
+            const char* to;
+            int ret;
+            int verrno;
+        } link;
+        struct {
+            const char* from;
+            const char* to;
+            int ret;
+            int verrno;
+        } symlink;
+        struct {
+            const char* path;
+            char* buf;
+            size_t len;
+            ssize_t ret;
+            int verrno;
+        } readlink;
+        struct {
+            const char * name;
+            int ret;
+            int verrno;
+        } unlink;
+        struct {
+            const char* path;
+            int ret;
+            int verrno;
+        } rmdir;
     };
 };
 
@@ -353,9 +566,21 @@ static void perform_action(struct wire_io_act *act)
             act->stat.ret = stat(act->stat.path, act->stat.buf);
             act->stat.verrno = errno;
             break;
+        case IO_LSEEK:
+            act->lseek.ret = lseek(act->lseek.fd, act->lseek.offset, act->lseek.whence);
+            act->lseek.verrno = errno;
+            break;
+        case IO_LSEEK64:
+            act->lseek64.ret = lseek64(act->lseek64.fd, act->lseek64.offset, act->lseek64.whence);
+            act->lseek64.verrno = errno;
+            break;
         case IO_FTRUNCATE:
             act->ftruncate.ret = ftruncate(act->ftruncate.fd, act->ftruncate.length);
             act->ftruncate.verrno = errno;
+            break;
+        case IO_TRUNCATE:
+            act->truncate.ret = truncate(act->truncate.filename, act->truncate.offset);
+            act->truncate.verrno = errno;
             break;
         case IO_FALLOCATE:
             act->fallocate.ret = fallocate(act->fallocate.fd, act->fallocate.mode, act->fallocate.offset, act->fallocate.len);
@@ -364,6 +589,13 @@ static void perform_action(struct wire_io_act *act)
         case IO_FSYNC:
             act->fsync.ret = fsync(act->fsync.fd);
             act->fsync.verrno = errno;
+            break;
+        case IO_SYNC:
+            sync();
+            break;
+        case IO_FDATASYNC:
+            act->fdatasync.ret = fdatasync(act->fdatasync.fd);
+            act->fdatasync.verrno = errno;
             break;
         case IO_STATFS:
             act->statfs.ret = statfs(act->statfs.path, act->statfs.buf);
@@ -484,6 +716,118 @@ static void perform_action(struct wire_io_act *act)
             act->dup2.ret = dup2(act->dup2.oldfd, act->dup2.newfd);
             act->dup2.verrno = errno;
             break;
+        case IO_ALARM:
+            act->alarm.ret = alarm(act->alarm.seconds);
+            act->alarm.verrno = errno;
+            break;
+        case IO_UALARM:
+            act->ualarm.ret = ualarm(act->ualarm.value, act->ualarm.interval);
+            act->ualarm.verrno = errno;
+            break;
+        case IO_CHOWN:
+            act->chown.ret = chown(act->chown.filename, act->chown.owner, act->chown.group);
+            act->chown.verrno = errno;
+            break;
+        case IO_FCHOWN:
+            act->fchown.ret = fchown(act->fchown.fd, act->fchown.owner, act->fchown.group);
+            act->fchown.verrno = errno;
+            break;
+        case IO_LCHOWN:
+            act->lchown.ret = lchown(act->lchown.filename, act->lchown.owner, act->lchown.group);
+            act->lchown.verrno = errno;
+            break;
+        case IO_FCHOWNAT:
+            act->fchownat.ret = fchownat(act->fchownat.fd, act->fchownat.filename, act->fchownat.owner, act->fchownat.group, act->fchownat.flag);
+            act->fchownat.verrno = errno;
+            break;
+        case IO_FCHDIR:
+            act->fchdir.ret = fchdir(act->fchdir.fd);
+            act->fchdir.verrno = errno;
+            break;
+        case IO_GETCWD:
+            act->getcwd.ret = getcwd(act->getcwd.buf, act->getcwd.size);
+            act->getcwd.verrno = errno;
+            break;
+        case IO_EXECVE:
+            act->execve.ret = execve(act->execve.path, act->execve.argv, act->execve.envp);
+            act->execve.verrno = errno;
+            break;
+        case IO_EXECV:
+            act->execv.ret = execv(act->execv.path, act->execv.argv);
+            act->execv.verrno = errno;
+            break;
+        case IO_EXECVPE:
+            act->execvpe.ret = execvpe(act->execvpe.file, act->execvpe.argv, act->execvpe.envp);
+            act->execvpe.verrno = errno;
+            break;
+        case IO_GETPID:
+            act->getpid.ret = getpid();
+            act->getpid.verrno = errno;
+            break;
+        case IO_GETPPID:
+            act->getppid.ret = getppid();
+            act->getppid.verrno = errno;
+            break;
+        case IO_GETPGRP:
+            act->getpgrp.ret = getpgrp();
+            act->getpgrp.verrno = errno;
+            break;
+        case IO_GETPGID:
+            act->getpgid.ret = getpgid(act->getpgid.pid);
+            act->getpgid.verrno = errno;
+            break;
+        case IO_SETPGID:
+            act->setpgid.ret = setpgid(act->setpgid.pid, act->setpgid.pgid);
+            act->setpgid.verrno = errno;
+            break;
+        case IO_SETPGRP:
+            act->setpgrp.ret = setpgrp();
+            act->setpgrp.verrno = errno;
+            break;
+        case IO_SETSID:
+            act->setsid.ret = setsid();
+            act->setsid.verrno = errno;
+            break;
+        case IO_GETSID:
+            act->getsid.ret = getsid(act->getsid.pid);
+            act->getsid.verrno = errno;
+            break;
+        case IO_GETUID:
+            act->getuid.ret = getuid();
+            act->getuid.verrno = errno;
+            break;
+        case IO_GETEUID:
+            act->geteuid.ret = geteuid();
+            act->geteuid.verrno = errno;
+            break;
+        case IO_GETGID:
+            act->getgid.ret = getgid();
+            act->getgid.verrno = errno;
+            break;
+        case IO_FORK:
+            act->fork.ret = fork();
+            act->fork.verrno = errno;
+            break;
+        case IO_LINK:
+            act->link.ret = link(act->link.from, act->link.to);
+            act->link.verrno = errno;
+            break;
+        case IO_SYMLINK:
+            act->symlink.ret = symlink(act->symlink.from, act->symlink.to);
+            act->symlink.verrno = errno;
+            break;
+        case IO_READLINK:
+            act->readlink.ret = readlink(act->readlink.path, act->readlink.buf, act->readlink.len);
+            act->readlink.verrno = errno;
+            break;
+        case IO_UNLINK:
+            act->unlink.ret = unlink(act->unlink.name);
+            act->unlink.verrno = errno;
+            break;
+        case IO_RMDIR:
+            act->rmdir.ret = rmdir(act->rmdir.path);
+            act->rmdir.verrno = errno;
+            break;
     }
 }
 
@@ -581,6 +925,30 @@ int wio_stat(const char *path, struct stat *buf)
     return act.stat.ret;
 }
 
+off_t wio_lseek(int fd, off_t offset, int whence)
+{
+    struct wire_io_act act;
+    act.type = IO_LSEEK;
+    act.lseek.fd = fd;
+    act.lseek.offset = offset;
+    act.lseek.whence = whence;
+    submit_action(&act.common);
+    errno = act.lseek.verrno;
+    return act.lseek.ret;
+}
+
+off64_t wio_lseek64(int fd, off64_t offset, int whence)
+{
+    struct wire_io_act act;
+    act.type = IO_LSEEK64;
+    act.lseek64.fd = fd;
+    act.lseek64.offset = offset;
+    act.lseek64.whence = whence;
+    submit_action(&act.common);
+    errno = act.lseek64.verrno;
+    return act.lseek64.ret;
+}
+
 int wio_ftruncate(int fd, off_t length)
 {
     struct wire_io_act act;
@@ -590,6 +958,17 @@ int wio_ftruncate(int fd, off_t length)
     submit_action(&act.common);
     errno = act.ftruncate.verrno;
     return act.ftruncate.ret;
+}
+
+int wio_truncate(const char* filename, off_t offset)
+{
+    struct wire_io_act act;
+    act.type = IO_TRUNCATE;
+    act.truncate.filename = filename;
+    act.truncate.offset = offset;
+    submit_action(&act.common);
+    errno = act.truncate.verrno;
+    return act.truncate.ret;
 }
 
 int wio_fallocate(int fd, int mode, off_t offset, off_t len)
@@ -613,6 +992,23 @@ int wio_fsync(int fd)
     submit_action(&act.common);
     errno = act.fsync.verrno;
     return act.fsync.ret;
+}
+
+void wio_sync(void)
+{
+    struct wire_io_act act;
+    act.type = IO_SYNC;
+    submit_action(&act.common);
+}
+
+int wio_fdatasync(int fd)
+{
+    struct wire_io_act act;
+    act.type = IO_FDATASYNC;
+    act.fdatasync.fd = fd;
+    submit_action(&act.common);
+    errno = act.fdatasync.verrno;
+    return act.fdatasync.ret;
 }
 
 int wio_statfs(const char *path, struct statfs *buf)
@@ -959,6 +1355,299 @@ int wio_dup2(int oldfd, int newfd)
     return act.dup2.ret;
 }
 
+unsigned int wio_alarm(unsigned int seconds)
+{
+    struct wire_io_act act;
+    act.type = IO_ALARM;
+    act.alarm.seconds = seconds;
+    submit_action(&act.common);
+    errno = act.alarm.verrno;
+    return act.alarm.ret;
+}
+
+unsigned int wio_ualarm(unsigned value, unsigned interval)
+{
+    struct wire_io_act act;
+    act.type = IO_UALARM;
+    act.ualarm.value = value;
+    act.ualarm.interval = interval;
+    submit_action(&act.common);
+    errno = act.ualarm.verrno;
+    return act.ualarm.ret;
+}
+
+int wio_chown(const char *filename, uid_t owner, gid_t group)
+{
+    struct wire_io_act act;
+    act.type = IO_CHOWN;
+    act.chown.filename = filename;
+    act.chown.owner = owner;
+    act.chown.group = group;
+    submit_action(&act.common);
+    errno = act.chown.verrno;
+    return act.chown.ret;
+}
+
+int wio_fchown(int fd, uid_t owner, gid_t group)
+{
+    struct wire_io_act act;
+    act.type = IO_FCHOWN;
+    act.fchown.fd = fd;
+    act.fchown.owner = owner;
+    act.fchown.group = group;
+    submit_action(&act.common);
+    errno = act.fchown.verrno;
+    return act.fchown.ret;
+}
+
+int wio_lchown(const char* filename, uid_t owner, gid_t group)
+{
+    struct wire_io_act act;
+    act.type = IO_LCHOWN;
+    act.lchown.filename = filename;
+    act.lchown.owner = owner;
+    act.lchown.group = group;
+    submit_action(&act.common);
+    errno = act.lchown.verrno;
+    return act.lchown.ret;
+}
+
+int wio_fchownat(int fd, const char* filename, uid_t owner, gid_t group, int flag)
+{
+    struct wire_io_act act;
+    act.type = IO_FCHOWNAT;
+    act.fchownat.fd = fd;
+    act.fchownat.filename = filename;
+    act.fchownat.owner = owner;
+    act.fchownat.group = group;
+    act.fchownat.flag = flag;
+    submit_action(&act.common);
+    errno = act.fchownat.verrno;
+    return act.fchownat.ret;
+}
+
+int wio_fchdir(int fd)
+{
+    struct wire_io_act act;
+    act.type = IO_FCHDIR;
+    act.fchdir.fd = fd;
+    submit_action(&act.common);
+    errno = act.fchdir.verrno;
+    return act.fchdir.ret;
+}
+
+char* wio_getcwd(char* buf, size_t size)
+{
+    struct wire_io_act act;
+    act.type = IO_GETCWD;
+    act.getcwd.buf = buf;
+    act.getcwd.size = size;
+    submit_action(&act.common);
+    errno = act.getcwd.verrno;
+    return act.getcwd.ret;
+}
+
+int wio_execve(const char* path, char *const* argv, char *const* envp)
+{
+    struct wire_io_act act;
+    act.type = IO_EXECVE;
+    act.execve.path = path;
+    act.execve.argv = argv;
+    act.execve.envp = envp;
+    submit_action(&act.common);
+    errno = act.execve.verrno;
+    return act.execve.ret;
+}
+
+int wio_execv(const char* path, char *const* argv)
+{
+    struct wire_io_act act;
+    act.type = IO_EXECV;
+    act.execv.path = path;
+    act.execv.argv = argv;
+    submit_action(&act.common);
+    errno = act.execv.verrno;
+    return act.execv.ret;
+}
+
+int wio_execvpe(const char* file, char *const* argv, char *const* envp)
+{
+    struct wire_io_act act;
+    act.type = IO_EXECVPE;
+    act.execvpe.file = file;
+    act.execvpe.argv = argv;
+    act.execvpe.envp = envp;
+    submit_action(&act.common);
+    errno = act.execvpe.verrno;
+    return act.execvpe.ret;
+}
+
+pid_t wio_getpid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETPID;
+    submit_action(&act.common);
+    errno = act.getpid.verrno;
+    return act.getpid.ret;
+}
+
+pid_t wio_getppid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETPPID;
+    submit_action(&act.common);
+    errno = act.getppid.verrno;
+    return act.getppid.ret;
+}
+
+pid_t wio_getpgrp(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETPGRP;
+    submit_action(&act.common);
+    errno = act.getpgrp.verrno;
+    return act.getpgrp.ret;
+}
+
+pid_t wio_getpgid(pid_t pid)
+{
+    struct wire_io_act act;
+    act.type = IO_GETPGID;
+    act.getpgid.pid = pid;
+    submit_action(&act.common);
+    errno = act.getpgid.verrno;
+    return act.getpgid.ret;
+}
+
+int wio_setpgid(pid_t pid, pid_t pgid)
+{
+    struct wire_io_act act;
+    act.type = IO_SETPGID;
+    act.setpgid.pid = pid;
+    act.setpgid.pgid = pgid;
+    submit_action(&act.common);
+    errno = act.setpgid.verrno;
+    return act.setpgid.ret;
+}
+
+int wio_setpgrp(void)
+{
+    struct wire_io_act act;
+    act.type = IO_SETPGRP;
+    submit_action(&act.common);
+    errno = act.setpgrp.verrno;
+    return act.setpgrp.ret;
+}
+
+pid_t wio_setsid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_SETSID;
+    submit_action(&act.common);
+    errno = act.setsid.verrno;
+    return act.setsid.ret;
+}
+
+pid_t wio_getsid(pid_t pid)
+{
+    struct wire_io_act act;
+    act.type = IO_GETSID;
+    act.getsid.pid = pid;
+    submit_action(&act.common);
+    errno = act.getsid.verrno;
+    return act.getsid.ret;
+}
+
+uid_t wio_getuid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETUID;
+    submit_action(&act.common);
+    errno = act.getuid.verrno;
+    return act.getuid.ret;
+}
+
+uid_t wio_geteuid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETEUID;
+    submit_action(&act.common);
+    errno = act.geteuid.verrno;
+    return act.geteuid.ret;
+}
+
+gid_t wio_getgid(void)
+{
+    struct wire_io_act act;
+    act.type = IO_GETGID;
+    submit_action(&act.common);
+    errno = act.getgid.verrno;
+    return act.getgid.ret;
+}
+
+pid_t wio_fork(void)
+{
+    struct wire_io_act act;
+    act.type = IO_FORK;
+    submit_action(&act.common);
+    errno = act.fork.verrno;
+    return act.fork.ret;
+}
+
+int wio_link(const char* from, const char* to)
+{
+    struct wire_io_act act;
+    act.type = IO_LINK;
+    act.link.from = from;
+    act.link.to = to;
+    submit_action(&act.common);
+    errno = act.link.verrno;
+    return act.link.ret;
+}
+
+int wio_symlink(const char* from, const char* to)
+{
+    struct wire_io_act act;
+    act.type = IO_SYMLINK;
+    act.symlink.from = from;
+    act.symlink.to = to;
+    submit_action(&act.common);
+    errno = act.symlink.verrno;
+    return act.symlink.ret;
+}
+
+ssize_t wio_readlink(const char* path, char* buf, size_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_READLINK;
+    act.readlink.path = path;
+    act.readlink.buf = buf;
+    act.readlink.len = len;
+    submit_action(&act.common);
+    errno = act.readlink.verrno;
+    return act.readlink.ret;
+}
+
+int wio_unlink(const char *name)
+{
+    struct wire_io_act act;
+    act.type = IO_UNLINK;
+    act.unlink.name = name;
+    submit_action(&act.common);
+    errno = act.unlink.verrno;
+    return act.unlink.ret;
+}
+
+int wio_rmdir(const char* path)
+{
+    struct wire_io_act act;
+    act.type = IO_RMDIR;
+    act.rmdir.path = path;
+    submit_action(&act.common);
+    errno = act.rmdir.verrno;
+    return act.rmdir.ret;
+}
+
 static int (*orig_open)(const char *pathname, int flags, mode_t mode);
 static int (*orig_close)(int fd);
 static ssize_t (*orig_pread)(int fd, void *buf, size_t count, off_t offset);
@@ -967,9 +1656,14 @@ static ssize_t (*orig_read)(int fd, void *buf, size_t count);
 static ssize_t (*orig_write)(int fd, const void *buf, size_t count);
 static int (*orig_fstat)(int fd, struct stat *buf);
 static int (*orig_stat)(const char *path, struct stat *buf);
+static off_t (*orig_lseek)(int fd, off_t offset, int whence);
+static off64_t (*orig_lseek64)(int fd, off64_t offset, int whence);
 static int (*orig_ftruncate)(int fd, off_t length);
+static int (*orig_truncate)(const char* filename, off_t offset);
 static int (*orig_fallocate)(int fd, int mode, off_t offset, off_t len);
 static int (*orig_fsync)(int fd);
+static void (*orig_sync)(void);
+static int (*orig_fdatasync)(int fd);
 static int (*orig_statfs)(const char *path, struct statfs *buf);
 static int (*orig_fstatfs)(int fd, struct statfs *buf);
 static int (*orig_getaddrinfo)(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
@@ -1000,6 +1694,34 @@ static pid_t (*orig_wait)(int *status);
 static pid_t (*orig_waitpid)(pid_t pid, int *status, int options);
 static int (*orig_dup)(int oldfd);
 static int (*orig_dup2)(int oldfd, int newfd);
+static unsigned int (*orig_alarm)(unsigned int seconds);
+static unsigned int (*orig_ualarm)(unsigned value, unsigned interval);
+static int (*orig_chown)(const char *filename, uid_t owner, gid_t group);
+static int (*orig_fchown)(int fd, uid_t owner, gid_t group);
+static int (*orig_lchown)(const char* filename, uid_t owner, gid_t group);
+static int (*orig_fchownat)(int fd, const char* filename, uid_t owner, gid_t group, int flag);
+static int (*orig_fchdir)(int fd);
+static char* (*orig_getcwd)(char* buf, size_t size);
+static int (*orig_execve)(const char* path, char *const* argv, char *const* envp);
+static int (*orig_execv)(const char* path, char *const* argv);
+static int (*orig_execvpe)(const char* file, char *const* argv, char *const* envp);
+static pid_t (*orig_getpid)(void);
+static pid_t (*orig_getppid)(void);
+static pid_t (*orig_getpgrp)(void);
+static pid_t (*orig_getpgid)(pid_t pid);
+static int (*orig_setpgid)(pid_t pid, pid_t pgid);
+static int (*orig_setpgrp)(void);
+static pid_t (*orig_setsid)(void);
+static pid_t (*orig_getsid)(pid_t pid);
+static uid_t (*orig_getuid)(void);
+static uid_t (*orig_geteuid)(void);
+static gid_t (*orig_getgid)(void);
+static pid_t (*orig_fork)(void);
+static int (*orig_link)(const char* from, const char* to);
+static int (*orig_symlink)(const char* from, const char* to);
+static ssize_t (*orig_readlink)(const char* path, char* buf, size_t len);
+static int (*orig_unlink)(const char *name);
+static int (*orig_rmdir)(const char* path);
 __attribute__((constructor)) static void wire_dlsym_init(void)
 {
     orig_close = dlsym(RTLD_NEXT, "close");
@@ -1012,12 +1734,22 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_read == NULL) { fputs("Failed to get address of read\n", stderr); abort(); }
     orig_write = dlsym(RTLD_NEXT, "write");
     if (orig_write == NULL) { fputs("Failed to get address of write\n", stderr); abort(); }
+    orig_lseek = dlsym(RTLD_NEXT, "lseek");
+    if (orig_lseek == NULL) { fputs("Failed to get address of lseek\n", stderr); abort(); }
+    orig_lseek64 = dlsym(RTLD_NEXT, "lseek64");
+    if (orig_lseek64 == NULL) { fputs("Failed to get address of lseek64\n", stderr); abort(); }
     orig_ftruncate = dlsym(RTLD_NEXT, "ftruncate");
     if (orig_ftruncate == NULL) { fputs("Failed to get address of ftruncate\n", stderr); abort(); }
+    orig_truncate = dlsym(RTLD_NEXT, "truncate");
+    if (orig_truncate == NULL) { fputs("Failed to get address of truncate\n", stderr); abort(); }
     orig_fallocate = dlsym(RTLD_NEXT, "fallocate");
     if (orig_fallocate == NULL) { fputs("Failed to get address of fallocate\n", stderr); abort(); }
     orig_fsync = dlsym(RTLD_NEXT, "fsync");
     if (orig_fsync == NULL) { fputs("Failed to get address of fsync\n", stderr); abort(); }
+    orig_sync = dlsym(RTLD_NEXT, "sync");
+    if (orig_sync == NULL) { fputs("Failed to get address of sync\n", stderr); abort(); }
+    orig_fdatasync = dlsym(RTLD_NEXT, "fdatasync");
+    if (orig_fdatasync == NULL) { fputs("Failed to get address of fdatasync\n", stderr); abort(); }
     orig_statfs = dlsym(RTLD_NEXT, "statfs");
     if (orig_statfs == NULL) { fputs("Failed to get address of statfs\n", stderr); abort(); }
     orig_fstatfs = dlsym(RTLD_NEXT, "fstatfs");
@@ -1076,6 +1808,62 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_dup == NULL) { fputs("Failed to get address of dup\n", stderr); abort(); }
     orig_dup2 = dlsym(RTLD_NEXT, "dup2");
     if (orig_dup2 == NULL) { fputs("Failed to get address of dup2\n", stderr); abort(); }
+    orig_alarm = dlsym(RTLD_NEXT, "alarm");
+    if (orig_alarm == NULL) { fputs("Failed to get address of alarm\n", stderr); abort(); }
+    orig_ualarm = dlsym(RTLD_NEXT, "ualarm");
+    if (orig_ualarm == NULL) { fputs("Failed to get address of ualarm\n", stderr); abort(); }
+    orig_chown = dlsym(RTLD_NEXT, "chown");
+    if (orig_chown == NULL) { fputs("Failed to get address of chown\n", stderr); abort(); }
+    orig_fchown = dlsym(RTLD_NEXT, "fchown");
+    if (orig_fchown == NULL) { fputs("Failed to get address of fchown\n", stderr); abort(); }
+    orig_lchown = dlsym(RTLD_NEXT, "lchown");
+    if (orig_lchown == NULL) { fputs("Failed to get address of lchown\n", stderr); abort(); }
+    orig_fchownat = dlsym(RTLD_NEXT, "fchownat");
+    if (orig_fchownat == NULL) { fputs("Failed to get address of fchownat\n", stderr); abort(); }
+    orig_fchdir = dlsym(RTLD_NEXT, "fchdir");
+    if (orig_fchdir == NULL) { fputs("Failed to get address of fchdir\n", stderr); abort(); }
+    orig_getcwd = dlsym(RTLD_NEXT, "getcwd");
+    if (orig_getcwd == NULL) { fputs("Failed to get address of getcwd\n", stderr); abort(); }
+    orig_execve = dlsym(RTLD_NEXT, "execve");
+    if (orig_execve == NULL) { fputs("Failed to get address of execve\n", stderr); abort(); }
+    orig_execv = dlsym(RTLD_NEXT, "execv");
+    if (orig_execv == NULL) { fputs("Failed to get address of execv\n", stderr); abort(); }
+    orig_execvpe = dlsym(RTLD_NEXT, "execvpe");
+    if (orig_execvpe == NULL) { fputs("Failed to get address of execvpe\n", stderr); abort(); }
+    orig_getpid = dlsym(RTLD_NEXT, "getpid");
+    if (orig_getpid == NULL) { fputs("Failed to get address of getpid\n", stderr); abort(); }
+    orig_getppid = dlsym(RTLD_NEXT, "getppid");
+    if (orig_getppid == NULL) { fputs("Failed to get address of getppid\n", stderr); abort(); }
+    orig_getpgrp = dlsym(RTLD_NEXT, "getpgrp");
+    if (orig_getpgrp == NULL) { fputs("Failed to get address of getpgrp\n", stderr); abort(); }
+    orig_getpgid = dlsym(RTLD_NEXT, "getpgid");
+    if (orig_getpgid == NULL) { fputs("Failed to get address of getpgid\n", stderr); abort(); }
+    orig_setpgid = dlsym(RTLD_NEXT, "setpgid");
+    if (orig_setpgid == NULL) { fputs("Failed to get address of setpgid\n", stderr); abort(); }
+    orig_setpgrp = dlsym(RTLD_NEXT, "setpgrp");
+    if (orig_setpgrp == NULL) { fputs("Failed to get address of setpgrp\n", stderr); abort(); }
+    orig_setsid = dlsym(RTLD_NEXT, "setsid");
+    if (orig_setsid == NULL) { fputs("Failed to get address of setsid\n", stderr); abort(); }
+    orig_getsid = dlsym(RTLD_NEXT, "getsid");
+    if (orig_getsid == NULL) { fputs("Failed to get address of getsid\n", stderr); abort(); }
+    orig_getuid = dlsym(RTLD_NEXT, "getuid");
+    if (orig_getuid == NULL) { fputs("Failed to get address of getuid\n", stderr); abort(); }
+    orig_geteuid = dlsym(RTLD_NEXT, "geteuid");
+    if (orig_geteuid == NULL) { fputs("Failed to get address of geteuid\n", stderr); abort(); }
+    orig_getgid = dlsym(RTLD_NEXT, "getgid");
+    if (orig_getgid == NULL) { fputs("Failed to get address of getgid\n", stderr); abort(); }
+    orig_fork = dlsym(RTLD_NEXT, "fork");
+    if (orig_fork == NULL) { fputs("Failed to get address of fork\n", stderr); abort(); }
+    orig_link = dlsym(RTLD_NEXT, "link");
+    if (orig_link == NULL) { fputs("Failed to get address of link\n", stderr); abort(); }
+    orig_symlink = dlsym(RTLD_NEXT, "symlink");
+    if (orig_symlink == NULL) { fputs("Failed to get address of symlink\n", stderr); abort(); }
+    orig_readlink = dlsym(RTLD_NEXT, "readlink");
+    if (orig_readlink == NULL) { fputs("Failed to get address of readlink\n", stderr); abort(); }
+    orig_unlink = dlsym(RTLD_NEXT, "unlink");
+    if (orig_unlink == NULL) { fputs("Failed to get address of unlink\n", stderr); abort(); }
+    orig_rmdir = dlsym(RTLD_NEXT, "rmdir");
+    if (orig_rmdir == NULL) { fputs("Failed to get address of rmdir\n", stderr); abort(); }
 }
 int close(int fd)
 {
@@ -1117,12 +1905,36 @@ ssize_t write(int fd, const void *buf, size_t count)
         return orig_write(fd, buf, count);
     }
 }
+off_t lseek(int fd, off_t offset, int whence)
+{
+    if (is_wire_thread) {
+        return wio_lseek(fd, offset, whence);
+    } else {
+        return orig_lseek(fd, offset, whence);
+    }
+}
+off64_t lseek64(int fd, off64_t offset, int whence)
+{
+    if (is_wire_thread) {
+        return wio_lseek64(fd, offset, whence);
+    } else {
+        return orig_lseek64(fd, offset, whence);
+    }
+}
 int ftruncate(int fd, off_t length)
 {
     if (is_wire_thread) {
         return wio_ftruncate(fd, length);
     } else {
         return orig_ftruncate(fd, length);
+    }
+}
+int truncate(const char* filename, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_truncate(filename, offset);
+    } else {
+        return orig_truncate(filename, offset);
     }
 }
 int fallocate(int fd, int mode, off_t offset, off_t len)
@@ -1139,6 +1951,22 @@ int fsync(int fd)
         return wio_fsync(fd);
     } else {
         return orig_fsync(fd);
+    }
+}
+void sync(void)
+{
+    if (is_wire_thread) {
+        return wio_sync();
+    } else {
+        return orig_sync();
+    }
+}
+int fdatasync(int fd)
+{
+    if (is_wire_thread) {
+        return wio_fdatasync(fd);
+    } else {
+        return orig_fdatasync(fd);
     }
 }
 int statfs(const char *path, struct statfs *buf)
@@ -1371,5 +2199,229 @@ int dup2(int oldfd, int newfd)
         return wio_dup2(oldfd, newfd);
     } else {
         return orig_dup2(oldfd, newfd);
+    }
+}
+unsigned int alarm(unsigned int seconds)
+{
+    if (is_wire_thread) {
+        return wio_alarm(seconds);
+    } else {
+        return orig_alarm(seconds);
+    }
+}
+unsigned int ualarm(unsigned value, unsigned interval)
+{
+    if (is_wire_thread) {
+        return wio_ualarm(value, interval);
+    } else {
+        return orig_ualarm(value, interval);
+    }
+}
+int chown(const char *filename, uid_t owner, gid_t group)
+{
+    if (is_wire_thread) {
+        return wio_chown(filename, owner, group);
+    } else {
+        return orig_chown(filename, owner, group);
+    }
+}
+int fchown(int fd, uid_t owner, gid_t group)
+{
+    if (is_wire_thread) {
+        return wio_fchown(fd, owner, group);
+    } else {
+        return orig_fchown(fd, owner, group);
+    }
+}
+int lchown(const char* filename, uid_t owner, gid_t group)
+{
+    if (is_wire_thread) {
+        return wio_lchown(filename, owner, group);
+    } else {
+        return orig_lchown(filename, owner, group);
+    }
+}
+int fchownat(int fd, const char* filename, uid_t owner, gid_t group, int flag)
+{
+    if (is_wire_thread) {
+        return wio_fchownat(fd, filename, owner, group, flag);
+    } else {
+        return orig_fchownat(fd, filename, owner, group, flag);
+    }
+}
+int fchdir(int fd)
+{
+    if (is_wire_thread) {
+        return wio_fchdir(fd);
+    } else {
+        return orig_fchdir(fd);
+    }
+}
+char* getcwd(char* buf, size_t size)
+{
+    if (is_wire_thread) {
+        return wio_getcwd(buf, size);
+    } else {
+        return orig_getcwd(buf, size);
+    }
+}
+int execve(const char* path, char *const* argv, char *const* envp)
+{
+    if (is_wire_thread) {
+        return wio_execve(path, argv, envp);
+    } else {
+        return orig_execve(path, argv, envp);
+    }
+}
+int execv(const char* path, char *const* argv)
+{
+    if (is_wire_thread) {
+        return wio_execv(path, argv);
+    } else {
+        return orig_execv(path, argv);
+    }
+}
+int execvpe(const char* file, char *const* argv, char *const* envp)
+{
+    if (is_wire_thread) {
+        return wio_execvpe(file, argv, envp);
+    } else {
+        return orig_execvpe(file, argv, envp);
+    }
+}
+pid_t getpid(void)
+{
+    if (is_wire_thread) {
+        return wio_getpid();
+    } else {
+        return orig_getpid();
+    }
+}
+pid_t getppid(void)
+{
+    if (is_wire_thread) {
+        return wio_getppid();
+    } else {
+        return orig_getppid();
+    }
+}
+pid_t getpgrp(void)
+{
+    if (is_wire_thread) {
+        return wio_getpgrp();
+    } else {
+        return orig_getpgrp();
+    }
+}
+pid_t getpgid(pid_t pid)
+{
+    if (is_wire_thread) {
+        return wio_getpgid(pid);
+    } else {
+        return orig_getpgid(pid);
+    }
+}
+int setpgid(pid_t pid, pid_t pgid)
+{
+    if (is_wire_thread) {
+        return wio_setpgid(pid, pgid);
+    } else {
+        return orig_setpgid(pid, pgid);
+    }
+}
+int setpgrp(void)
+{
+    if (is_wire_thread) {
+        return wio_setpgrp();
+    } else {
+        return orig_setpgrp();
+    }
+}
+pid_t setsid(void)
+{
+    if (is_wire_thread) {
+        return wio_setsid();
+    } else {
+        return orig_setsid();
+    }
+}
+pid_t getsid(pid_t pid)
+{
+    if (is_wire_thread) {
+        return wio_getsid(pid);
+    } else {
+        return orig_getsid(pid);
+    }
+}
+uid_t getuid(void)
+{
+    if (is_wire_thread) {
+        return wio_getuid();
+    } else {
+        return orig_getuid();
+    }
+}
+uid_t geteuid(void)
+{
+    if (is_wire_thread) {
+        return wio_geteuid();
+    } else {
+        return orig_geteuid();
+    }
+}
+gid_t getgid(void)
+{
+    if (is_wire_thread) {
+        return wio_getgid();
+    } else {
+        return orig_getgid();
+    }
+}
+pid_t fork(void)
+{
+    if (is_wire_thread) {
+        return wio_fork();
+    } else {
+        return orig_fork();
+    }
+}
+int link(const char* from, const char* to)
+{
+    if (is_wire_thread) {
+        return wio_link(from, to);
+    } else {
+        return orig_link(from, to);
+    }
+}
+int symlink(const char* from, const char* to)
+{
+    if (is_wire_thread) {
+        return wio_symlink(from, to);
+    } else {
+        return orig_symlink(from, to);
+    }
+}
+ssize_t readlink(const char* path, char* buf, size_t len)
+{
+    if (is_wire_thread) {
+        return wio_readlink(path, buf, len);
+    } else {
+        return orig_readlink(path, buf, len);
+    }
+}
+int unlink(const char *name)
+{
+    if (is_wire_thread) {
+        return wio_unlink(name);
+    } else {
+        return orig_unlink(name);
+    }
+}
+int rmdir(const char* path)
+{
+    if (is_wire_thread) {
+        return wio_rmdir(path);
+    } else {
+        return orig_rmdir(path);
     }
 }
