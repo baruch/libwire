@@ -1,12 +1,20 @@
 #include "wire_io_gen.h"
 
 enum wio_type {
+	IO_CREAT,
+	IO_CREAT64,
 	IO_OPEN,
 	IO_CLOSE,
 	IO_PREAD,
 	IO_PWRITE,
 	IO_READ,
 	IO_WRITE,
+	IO_LOCKF,
+	IO_LOCKF64,
+	IO_POSIX_FADVISE,
+	IO_POSIX_FADVISE64,
+	IO_POSIX_FALLOCATE,
+	IO_POSIX_FALLOCATE64,
 	IO_FSTAT,
 	IO_STAT,
 	IO_LSEEK,
@@ -27,13 +35,22 @@ enum wio_type {
 	IO_WRITEV,
 	IO_PREADV,
 	IO_PWRITEV,
-	IO_MMAP,
-	IO_MUNMAP,
+	IO_MSYNC,
+	IO_MADVISE,
+	IO_POSIX_MADVISE,
+	IO_MLOCK,
+	IO_MUNLOCK,
+	IO_MLOCKALL,
+	IO_MUNLOCKALL,
 	IO_OPENDIR,
 	IO_FDOPENDIR,
 	IO_CLOSEDIR,
 	IO_READDIR_R,
 	IO_READDIR,
+	IO_REWINDDIR,
+	IO_SEEKDIR,
+	IO_TELLDIR,
+	IO_DIRFD,
 	IO_GLOB,
 	IO_GLOBFREE,
 	IO_POPEN,
@@ -45,6 +62,8 @@ enum wio_type {
 	IO_NFTW,
 	IO_WAIT,
 	IO_WAITPID,
+	IO_WAIT3,
+	IO_WAIT4,
 	IO_DUP,
 	IO_DUP2,
 	IO_ALARM,
@@ -81,6 +100,18 @@ struct wire_io_act {
     struct wire_io_act_common common;
     enum wio_type type;
     union {
+        struct {
+            const char* filename;
+            mode_t mode;
+            int ret;
+            int verrno;
+        } creat;
+        struct {
+            const char* filename;
+            mode_t mode;
+            int ret;
+            int verrno;
+        } creat64;
         struct {
             const char * pathname;
             int flags;
@@ -123,6 +154,50 @@ struct wire_io_act {
             ssize_t ret;
             int verrno;
         } write;
+        struct {
+            int fd;
+            int cmd;
+            off_t len;
+            int ret;
+            int verrno;
+        } lockf;
+        struct {
+            int fd;
+            int cmd;
+            off64_t len;
+            int ret;
+            int verrno;
+        } lockf64;
+        struct {
+            int fd;
+            off_t offset;
+            off_t len;
+            int advise;
+            int ret;
+            int verrno;
+        } posix_fadvise;
+        struct {
+            int fd;
+            off64_t offset;
+            off64_t len;
+            int advise;
+            int ret;
+            int verrno;
+        } posix_fadvise64;
+        struct {
+            int fd;
+            off_t offset;
+            off_t len;
+            int ret;
+            int verrno;
+        } posix_fallocate;
+        struct {
+            int fd;
+            off64_t offset;
+            off64_t len;
+            int ret;
+            int verrno;
+        } posix_fallocate64;
         struct {
             int fd;
             struct stat * buf;
@@ -255,21 +330,47 @@ struct wire_io_act {
             int verrno;
         } pwritev;
         struct {
-            void * addr;
-            size_t length;
-            int protc;
+            void* addr;
+            size_t len;
             int flags;
-            int fd;
-            off_t offset;
-            void * ret;
-            int verrno;
-        } mmap;
-        struct {
-            void * addr;
-            size_t length;
             int ret;
             int verrno;
-        } munmap;
+        } msync;
+        struct {
+            void* addr;
+            size_t len;
+            int advice;
+            int ret;
+            int verrno;
+        } madvise;
+        struct {
+            void* addr;
+            size_t len;
+            int advice;
+            int ret;
+            int verrno;
+        } posix_madvise;
+        struct {
+            const void* addr;
+            size_t len;
+            int ret;
+            int verrno;
+        } mlock;
+        struct {
+            const void* addr;
+            size_t len;
+            int ret;
+            int verrno;
+        } munlock;
+        struct {
+            int flags;
+            int ret;
+            int verrno;
+        } mlockall;
+        struct {
+            int ret;
+            int verrno;
+        } munlockall;
         struct {
             const char * name;
             DIR * ret;
@@ -297,6 +398,23 @@ struct wire_io_act {
             struct dirent * ret;
             int verrno;
         } readdir;
+        struct {
+            DIR* dirp;
+        } rewinddir;
+        struct {
+            DIR* dirp;
+            long int pos;
+        } seekdir;
+        struct {
+            DIR* dirp;
+            long int ret;
+            int verrno;
+        } telldir;
+        struct {
+            DIR* dirp;
+            int ret;
+            int verrno;
+        } dirfd;
         struct {
             const char * pattern;
             int flags;
@@ -364,6 +482,21 @@ struct wire_io_act {
             pid_t ret;
             int verrno;
         } waitpid;
+        struct {
+            int* stat_loc;
+            int options;
+            struct rusage* usage;
+            pid_t ret;
+            int verrno;
+        } wait3;
+        struct {
+            pid_t pid;
+            int* stat_loc;
+            int options;
+            struct rusage* usage;
+            pid_t ret;
+            int verrno;
+        } wait4;
         struct {
             int oldfd;
             int ret;
@@ -534,6 +667,14 @@ struct wire_io_act {
 static void perform_action(struct wire_io_act *act)
 {
     switch (act->type) {
+        case IO_CREAT:
+            act->creat.ret = creat(act->creat.filename, act->creat.mode);
+            act->creat.verrno = errno;
+            break;
+        case IO_CREAT64:
+            act->creat64.ret = creat64(act->creat64.filename, act->creat64.mode);
+            act->creat64.verrno = errno;
+            break;
         case IO_OPEN:
             act->open.ret = open(act->open.pathname, act->open.flags, act->open.mode);
             act->open.verrno = errno;
@@ -557,6 +698,30 @@ static void perform_action(struct wire_io_act *act)
         case IO_WRITE:
             act->write.ret = write(act->write.fd, act->write.buf, act->write.count);
             act->write.verrno = errno;
+            break;
+        case IO_LOCKF:
+            act->lockf.ret = lockf(act->lockf.fd, act->lockf.cmd, act->lockf.len);
+            act->lockf.verrno = errno;
+            break;
+        case IO_LOCKF64:
+            act->lockf64.ret = lockf64(act->lockf64.fd, act->lockf64.cmd, act->lockf64.len);
+            act->lockf64.verrno = errno;
+            break;
+        case IO_POSIX_FADVISE:
+            act->posix_fadvise.ret = posix_fadvise(act->posix_fadvise.fd, act->posix_fadvise.offset, act->posix_fadvise.len, act->posix_fadvise.advise);
+            act->posix_fadvise.verrno = errno;
+            break;
+        case IO_POSIX_FADVISE64:
+            act->posix_fadvise64.ret = posix_fadvise64(act->posix_fadvise64.fd, act->posix_fadvise64.offset, act->posix_fadvise64.len, act->posix_fadvise64.advise);
+            act->posix_fadvise64.verrno = errno;
+            break;
+        case IO_POSIX_FALLOCATE:
+            act->posix_fallocate.ret = posix_fallocate(act->posix_fallocate.fd, act->posix_fallocate.offset, act->posix_fallocate.len);
+            act->posix_fallocate.verrno = errno;
+            break;
+        case IO_POSIX_FALLOCATE64:
+            act->posix_fallocate64.ret = posix_fallocate64(act->posix_fallocate64.fd, act->posix_fallocate64.offset, act->posix_fallocate64.len);
+            act->posix_fallocate64.verrno = errno;
             break;
         case IO_FSTAT:
             act->fstat.ret = fstat(act->fstat.fd, act->fstat.buf);
@@ -637,13 +802,33 @@ static void perform_action(struct wire_io_act *act)
             act->pwritev.ret = pwritev(act->pwritev.fd, act->pwritev.iov, act->pwritev.iovcnt, act->pwritev.offset);
             act->pwritev.verrno = errno;
             break;
-        case IO_MMAP:
-            act->mmap.ret = mmap(act->mmap.addr, act->mmap.length, act->mmap.protc, act->mmap.flags, act->mmap.fd, act->mmap.offset);
-            act->mmap.verrno = errno;
+        case IO_MSYNC:
+            act->msync.ret = msync(act->msync.addr, act->msync.len, act->msync.flags);
+            act->msync.verrno = errno;
             break;
-        case IO_MUNMAP:
-            act->munmap.ret = munmap(act->munmap.addr, act->munmap.length);
-            act->munmap.verrno = errno;
+        case IO_MADVISE:
+            act->madvise.ret = madvise(act->madvise.addr, act->madvise.len, act->madvise.advice);
+            act->madvise.verrno = errno;
+            break;
+        case IO_POSIX_MADVISE:
+            act->posix_madvise.ret = posix_madvise(act->posix_madvise.addr, act->posix_madvise.len, act->posix_madvise.advice);
+            act->posix_madvise.verrno = errno;
+            break;
+        case IO_MLOCK:
+            act->mlock.ret = mlock(act->mlock.addr, act->mlock.len);
+            act->mlock.verrno = errno;
+            break;
+        case IO_MUNLOCK:
+            act->munlock.ret = munlock(act->munlock.addr, act->munlock.len);
+            act->munlock.verrno = errno;
+            break;
+        case IO_MLOCKALL:
+            act->mlockall.ret = mlockall(act->mlockall.flags);
+            act->mlockall.verrno = errno;
+            break;
+        case IO_MUNLOCKALL:
+            act->munlockall.ret = munlockall();
+            act->munlockall.verrno = errno;
             break;
         case IO_OPENDIR:
             act->opendir.ret = opendir(act->opendir.name);
@@ -664,6 +849,20 @@ static void perform_action(struct wire_io_act *act)
         case IO_READDIR:
             act->readdir.ret = readdir(act->readdir.dirp);
             act->readdir.verrno = errno;
+            break;
+        case IO_REWINDDIR:
+            rewinddir(act->rewinddir.dirp);
+            break;
+        case IO_SEEKDIR:
+            seekdir(act->seekdir.dirp, act->seekdir.pos);
+            break;
+        case IO_TELLDIR:
+            act->telldir.ret = telldir(act->telldir.dirp);
+            act->telldir.verrno = errno;
+            break;
+        case IO_DIRFD:
+            act->dirfd.ret = dirfd(act->dirfd.dirp);
+            act->dirfd.verrno = errno;
             break;
         case IO_GLOB:
             act->glob.ret = glob(act->glob.pattern, act->glob.flags, act->glob.errfunc, act->glob.pglob);
@@ -707,6 +906,14 @@ static void perform_action(struct wire_io_act *act)
         case IO_WAITPID:
             act->waitpid.ret = waitpid(act->waitpid.pid, act->waitpid.status, act->waitpid.options);
             act->waitpid.verrno = errno;
+            break;
+        case IO_WAIT3:
+            act->wait3.ret = wait3(act->wait3.stat_loc, act->wait3.options, act->wait3.usage);
+            act->wait3.verrno = errno;
+            break;
+        case IO_WAIT4:
+            act->wait4.ret = wait4(act->wait4.pid, act->wait4.stat_loc, act->wait4.options, act->wait4.usage);
+            act->wait4.verrno = errno;
             break;
         case IO_DUP:
             act->dup.ret = dup(act->dup.oldfd);
@@ -831,6 +1038,28 @@ static void perform_action(struct wire_io_act *act)
     }
 }
 
+int wio_creat(const char* filename, mode_t mode)
+{
+    struct wire_io_act act;
+    act.type = IO_CREAT;
+    act.creat.filename = filename;
+    act.creat.mode = mode;
+    submit_action(&act.common);
+    errno = act.creat.verrno;
+    return act.creat.ret;
+}
+
+int wio_creat64(const char* filename, mode_t mode)
+{
+    struct wire_io_act act;
+    act.type = IO_CREAT64;
+    act.creat64.filename = filename;
+    act.creat64.mode = mode;
+    submit_action(&act.common);
+    errno = act.creat64.verrno;
+    return act.creat64.ret;
+}
+
 int wio_open(const char *pathname, int flags, mode_t mode)
 {
     struct wire_io_act act;
@@ -901,6 +1130,80 @@ ssize_t wio_write(int fd, const void *buf, size_t count)
     submit_action(&act.common);
     errno = act.write.verrno;
     return act.write.ret;
+}
+
+int wio_lockf(int fd, int cmd, off_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_LOCKF;
+    act.lockf.fd = fd;
+    act.lockf.cmd = cmd;
+    act.lockf.len = len;
+    submit_action(&act.common);
+    errno = act.lockf.verrno;
+    return act.lockf.ret;
+}
+
+int wio_lockf64(int fd, int cmd, off64_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_LOCKF64;
+    act.lockf64.fd = fd;
+    act.lockf64.cmd = cmd;
+    act.lockf64.len = len;
+    submit_action(&act.common);
+    errno = act.lockf64.verrno;
+    return act.lockf64.ret;
+}
+
+int wio_posix_fadvise(int fd, off_t offset, off_t len, int advise)
+{
+    struct wire_io_act act;
+    act.type = IO_POSIX_FADVISE;
+    act.posix_fadvise.fd = fd;
+    act.posix_fadvise.offset = offset;
+    act.posix_fadvise.len = len;
+    act.posix_fadvise.advise = advise;
+    submit_action(&act.common);
+    errno = act.posix_fadvise.verrno;
+    return act.posix_fadvise.ret;
+}
+
+int wio_posix_fadvise64(int fd, off64_t offset, off64_t len, int advise)
+{
+    struct wire_io_act act;
+    act.type = IO_POSIX_FADVISE64;
+    act.posix_fadvise64.fd = fd;
+    act.posix_fadvise64.offset = offset;
+    act.posix_fadvise64.len = len;
+    act.posix_fadvise64.advise = advise;
+    submit_action(&act.common);
+    errno = act.posix_fadvise64.verrno;
+    return act.posix_fadvise64.ret;
+}
+
+int wio_posix_fallocate(int fd, off_t offset, off_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_POSIX_FALLOCATE;
+    act.posix_fallocate.fd = fd;
+    act.posix_fallocate.offset = offset;
+    act.posix_fallocate.len = len;
+    submit_action(&act.common);
+    errno = act.posix_fallocate.verrno;
+    return act.posix_fallocate.ret;
+}
+
+int wio_posix_fallocate64(int fd, off64_t offset, off64_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_POSIX_FALLOCATE64;
+    act.posix_fallocate64.fd = fd;
+    act.posix_fallocate64.offset = offset;
+    act.posix_fallocate64.len = len;
+    submit_action(&act.common);
+    errno = act.posix_fallocate64.verrno;
+    return act.posix_fallocate64.ret;
 }
 
 int wio_fstat(int fd, struct stat *buf)
@@ -1134,30 +1437,81 @@ ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
     return act.pwritev.ret;
 }
 
-void * wio_mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+int wio_msync(void* addr, size_t len, int flags)
 {
     struct wire_io_act act;
-    act.type = IO_MMAP;
-    act.mmap.addr = addr;
-    act.mmap.length = length;
-    act.mmap.protc = protc;
-    act.mmap.flags = flags;
-    act.mmap.fd = fd;
-    act.mmap.offset = offset;
+    act.type = IO_MSYNC;
+    act.msync.addr = addr;
+    act.msync.len = len;
+    act.msync.flags = flags;
     submit_action(&act.common);
-    errno = act.mmap.verrno;
-    return act.mmap.ret;
+    errno = act.msync.verrno;
+    return act.msync.ret;
 }
 
-int wio_munmap(void *addr, size_t length)
+int wio_madvise(void* addr, size_t len, int advice)
 {
     struct wire_io_act act;
-    act.type = IO_MUNMAP;
-    act.munmap.addr = addr;
-    act.munmap.length = length;
+    act.type = IO_MADVISE;
+    act.madvise.addr = addr;
+    act.madvise.len = len;
+    act.madvise.advice = advice;
     submit_action(&act.common);
-    errno = act.munmap.verrno;
-    return act.munmap.ret;
+    errno = act.madvise.verrno;
+    return act.madvise.ret;
+}
+
+int wio_posix_madvise(void* addr, size_t len, int advice)
+{
+    struct wire_io_act act;
+    act.type = IO_POSIX_MADVISE;
+    act.posix_madvise.addr = addr;
+    act.posix_madvise.len = len;
+    act.posix_madvise.advice = advice;
+    submit_action(&act.common);
+    errno = act.posix_madvise.verrno;
+    return act.posix_madvise.ret;
+}
+
+int wio_mlock(const void* addr, size_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_MLOCK;
+    act.mlock.addr = addr;
+    act.mlock.len = len;
+    submit_action(&act.common);
+    errno = act.mlock.verrno;
+    return act.mlock.ret;
+}
+
+int wio_munlock(const void* addr, size_t len)
+{
+    struct wire_io_act act;
+    act.type = IO_MUNLOCK;
+    act.munlock.addr = addr;
+    act.munlock.len = len;
+    submit_action(&act.common);
+    errno = act.munlock.verrno;
+    return act.munlock.ret;
+}
+
+int wio_mlockall(int flags)
+{
+    struct wire_io_act act;
+    act.type = IO_MLOCKALL;
+    act.mlockall.flags = flags;
+    submit_action(&act.common);
+    errno = act.mlockall.verrno;
+    return act.mlockall.ret;
+}
+
+int wio_munlockall(void)
+{
+    struct wire_io_act act;
+    act.type = IO_MUNLOCKALL;
+    submit_action(&act.common);
+    errno = act.munlockall.verrno;
+    return act.munlockall.ret;
 }
 
 DIR * wio_opendir(const char *name)
@@ -1210,6 +1564,43 @@ struct dirent * wio_readdir(DIR *dirp)
     submit_action(&act.common);
     errno = act.readdir.verrno;
     return act.readdir.ret;
+}
+
+void wio_rewinddir(DIR* dirp)
+{
+    struct wire_io_act act;
+    act.type = IO_REWINDDIR;
+    act.rewinddir.dirp = dirp;
+    submit_action(&act.common);
+}
+
+void wio_seekdir(DIR* dirp, long int pos)
+{
+    struct wire_io_act act;
+    act.type = IO_SEEKDIR;
+    act.seekdir.dirp = dirp;
+    act.seekdir.pos = pos;
+    submit_action(&act.common);
+}
+
+long int wio_telldir(DIR* dirp)
+{
+    struct wire_io_act act;
+    act.type = IO_TELLDIR;
+    act.telldir.dirp = dirp;
+    submit_action(&act.common);
+    errno = act.telldir.verrno;
+    return act.telldir.ret;
+}
+
+int wio_dirfd(DIR* dirp)
+{
+    struct wire_io_act act;
+    act.type = IO_DIRFD;
+    act.dirfd.dirp = dirp;
+    submit_action(&act.common);
+    errno = act.dirfd.verrno;
+    return act.dirfd.ret;
 }
 
 int wio_glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)
@@ -1332,6 +1723,31 @@ pid_t wio_waitpid(pid_t pid, int *status, int options)
     submit_action(&act.common);
     errno = act.waitpid.verrno;
     return act.waitpid.ret;
+}
+
+pid_t wio_wait3(int* stat_loc, int options, struct rusage* usage)
+{
+    struct wire_io_act act;
+    act.type = IO_WAIT3;
+    act.wait3.stat_loc = stat_loc;
+    act.wait3.options = options;
+    act.wait3.usage = usage;
+    submit_action(&act.common);
+    errno = act.wait3.verrno;
+    return act.wait3.ret;
+}
+
+pid_t wio_wait4(pid_t pid, int* stat_loc, int options, struct rusage* usage)
+{
+    struct wire_io_act act;
+    act.type = IO_WAIT4;
+    act.wait4.pid = pid;
+    act.wait4.stat_loc = stat_loc;
+    act.wait4.options = options;
+    act.wait4.usage = usage;
+    submit_action(&act.common);
+    errno = act.wait4.verrno;
+    return act.wait4.ret;
 }
 
 int wio_dup(int oldfd)
@@ -1648,12 +2064,20 @@ int wio_rmdir(const char* path)
     return act.rmdir.ret;
 }
 
+static int (*orig_creat)(const char* filename, mode_t mode);
+static int (*orig_creat64)(const char* filename, mode_t mode);
 static int (*orig_open)(const char *pathname, int flags, mode_t mode);
 static int (*orig_close)(int fd);
 static ssize_t (*orig_pread)(int fd, void *buf, size_t count, off_t offset);
 static ssize_t (*orig_pwrite)(int fd, const void *buf, size_t count, off_t offset);
 static ssize_t (*orig_read)(int fd, void *buf, size_t count);
 static ssize_t (*orig_write)(int fd, const void *buf, size_t count);
+static int (*orig_lockf)(int fd, int cmd, off_t len);
+static int (*orig_lockf64)(int fd, int cmd, off64_t len);
+static int (*orig_posix_fadvise)(int fd, off_t offset, off_t len, int advise);
+static int (*orig_posix_fadvise64)(int fd, off64_t offset, off64_t len, int advise);
+static int (*orig_posix_fallocate)(int fd, off_t offset, off_t len);
+static int (*orig_posix_fallocate64)(int fd, off64_t offset, off64_t len);
 static int (*orig_fstat)(int fd, struct stat *buf);
 static int (*orig_stat)(const char *path, struct stat *buf);
 static off_t (*orig_lseek)(int fd, off_t offset, int whence);
@@ -1674,13 +2098,22 @@ static ssize_t (*orig_readv)(int fd, const struct iovec *iov, int iovcnt);
 static ssize_t (*orig_writev)(int fd, const struct iovec *iov, int iovcnt);
 static ssize_t (*orig_preadv)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 static ssize_t (*orig_pwritev)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
-static void * (*orig_mmap)(void *addr, size_t length, int protc, int flags, int fd, off_t offset);
-static int (*orig_munmap)(void *addr, size_t length);
+static int (*orig_msync)(void* addr, size_t len, int flags);
+static int (*orig_madvise)(void* addr, size_t len, int advice);
+static int (*orig_posix_madvise)(void* addr, size_t len, int advice);
+static int (*orig_mlock)(const void* addr, size_t len);
+static int (*orig_munlock)(const void* addr, size_t len);
+static int (*orig_mlockall)(int flags);
+static int (*orig_munlockall)(void);
 static DIR * (*orig_opendir)(const char *name);
 static DIR * (*orig_fdopendir)(int fd);
 static int (*orig_closedir)(DIR *dirp);
 static int (*orig_readdir_r)(DIR *dirp, struct dirent *entry, struct dirent **result);
 static struct dirent * (*orig_readdir)(DIR *dirp);
+static void (*orig_rewinddir)(DIR* dirp);
+static void (*orig_seekdir)(DIR* dirp, long int pos);
+static long int (*orig_telldir)(DIR* dirp);
+static int (*orig_dirfd)(DIR* dirp);
 static int (*orig_glob)(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob);
 static void (*orig_globfree)(glob_t *pglob);
 static FILE * (*orig_popen)(const char *command, const char *type);
@@ -1692,6 +2125,8 @@ static int (*orig_ftw)(const char *dirpath, ftw_cb_t cb, int nopenfd);
 static int (*orig_nftw)(const char *dirpath, nftw_cb_t cb, int nopenfd, int flags);
 static pid_t (*orig_wait)(int *status);
 static pid_t (*orig_waitpid)(pid_t pid, int *status, int options);
+static pid_t (*orig_wait3)(int* stat_loc, int options, struct rusage* usage);
+static pid_t (*orig_wait4)(pid_t pid, int* stat_loc, int options, struct rusage* usage);
 static int (*orig_dup)(int oldfd);
 static int (*orig_dup2)(int oldfd, int newfd);
 static unsigned int (*orig_alarm)(unsigned int seconds);
@@ -1724,6 +2159,10 @@ static int (*orig_unlink)(const char *name);
 static int (*orig_rmdir)(const char* path);
 __attribute__((constructor)) static void wire_dlsym_init(void)
 {
+    orig_creat = dlsym(RTLD_NEXT, "creat");
+    if (orig_creat == NULL) { fputs("Failed to get address of creat\n", stderr); abort(); }
+    orig_creat64 = dlsym(RTLD_NEXT, "creat64");
+    if (orig_creat64 == NULL) { fputs("Failed to get address of creat64\n", stderr); abort(); }
     orig_close = dlsym(RTLD_NEXT, "close");
     if (orig_close == NULL) { fputs("Failed to get address of close\n", stderr); abort(); }
     orig_pread = dlsym(RTLD_NEXT, "pread");
@@ -1734,6 +2173,18 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_read == NULL) { fputs("Failed to get address of read\n", stderr); abort(); }
     orig_write = dlsym(RTLD_NEXT, "write");
     if (orig_write == NULL) { fputs("Failed to get address of write\n", stderr); abort(); }
+    orig_lockf = dlsym(RTLD_NEXT, "lockf");
+    if (orig_lockf == NULL) { fputs("Failed to get address of lockf\n", stderr); abort(); }
+    orig_lockf64 = dlsym(RTLD_NEXT, "lockf64");
+    if (orig_lockf64 == NULL) { fputs("Failed to get address of lockf64\n", stderr); abort(); }
+    orig_posix_fadvise = dlsym(RTLD_NEXT, "posix_fadvise");
+    if (orig_posix_fadvise == NULL) { fputs("Failed to get address of posix_fadvise\n", stderr); abort(); }
+    orig_posix_fadvise64 = dlsym(RTLD_NEXT, "posix_fadvise64");
+    if (orig_posix_fadvise64 == NULL) { fputs("Failed to get address of posix_fadvise64\n", stderr); abort(); }
+    orig_posix_fallocate = dlsym(RTLD_NEXT, "posix_fallocate");
+    if (orig_posix_fallocate == NULL) { fputs("Failed to get address of posix_fallocate\n", stderr); abort(); }
+    orig_posix_fallocate64 = dlsym(RTLD_NEXT, "posix_fallocate64");
+    if (orig_posix_fallocate64 == NULL) { fputs("Failed to get address of posix_fallocate64\n", stderr); abort(); }
     orig_lseek = dlsym(RTLD_NEXT, "lseek");
     if (orig_lseek == NULL) { fputs("Failed to get address of lseek\n", stderr); abort(); }
     orig_lseek64 = dlsym(RTLD_NEXT, "lseek64");
@@ -1768,10 +2219,20 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_preadv == NULL) { fputs("Failed to get address of preadv\n", stderr); abort(); }
     orig_pwritev = dlsym(RTLD_NEXT, "pwritev");
     if (orig_pwritev == NULL) { fputs("Failed to get address of pwritev\n", stderr); abort(); }
-    orig_mmap = dlsym(RTLD_NEXT, "mmap");
-    if (orig_mmap == NULL) { fputs("Failed to get address of mmap\n", stderr); abort(); }
-    orig_munmap = dlsym(RTLD_NEXT, "munmap");
-    if (orig_munmap == NULL) { fputs("Failed to get address of munmap\n", stderr); abort(); }
+    orig_msync = dlsym(RTLD_NEXT, "msync");
+    if (orig_msync == NULL) { fputs("Failed to get address of msync\n", stderr); abort(); }
+    orig_madvise = dlsym(RTLD_NEXT, "madvise");
+    if (orig_madvise == NULL) { fputs("Failed to get address of madvise\n", stderr); abort(); }
+    orig_posix_madvise = dlsym(RTLD_NEXT, "posix_madvise");
+    if (orig_posix_madvise == NULL) { fputs("Failed to get address of posix_madvise\n", stderr); abort(); }
+    orig_mlock = dlsym(RTLD_NEXT, "mlock");
+    if (orig_mlock == NULL) { fputs("Failed to get address of mlock\n", stderr); abort(); }
+    orig_munlock = dlsym(RTLD_NEXT, "munlock");
+    if (orig_munlock == NULL) { fputs("Failed to get address of munlock\n", stderr); abort(); }
+    orig_mlockall = dlsym(RTLD_NEXT, "mlockall");
+    if (orig_mlockall == NULL) { fputs("Failed to get address of mlockall\n", stderr); abort(); }
+    orig_munlockall = dlsym(RTLD_NEXT, "munlockall");
+    if (orig_munlockall == NULL) { fputs("Failed to get address of munlockall\n", stderr); abort(); }
     orig_opendir = dlsym(RTLD_NEXT, "opendir");
     if (orig_opendir == NULL) { fputs("Failed to get address of opendir\n", stderr); abort(); }
     orig_fdopendir = dlsym(RTLD_NEXT, "fdopendir");
@@ -1782,6 +2243,14 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_readdir_r == NULL) { fputs("Failed to get address of readdir_r\n", stderr); abort(); }
     orig_readdir = dlsym(RTLD_NEXT, "readdir");
     if (orig_readdir == NULL) { fputs("Failed to get address of readdir\n", stderr); abort(); }
+    orig_rewinddir = dlsym(RTLD_NEXT, "rewinddir");
+    if (orig_rewinddir == NULL) { fputs("Failed to get address of rewinddir\n", stderr); abort(); }
+    orig_seekdir = dlsym(RTLD_NEXT, "seekdir");
+    if (orig_seekdir == NULL) { fputs("Failed to get address of seekdir\n", stderr); abort(); }
+    orig_telldir = dlsym(RTLD_NEXT, "telldir");
+    if (orig_telldir == NULL) { fputs("Failed to get address of telldir\n", stderr); abort(); }
+    orig_dirfd = dlsym(RTLD_NEXT, "dirfd");
+    if (orig_dirfd == NULL) { fputs("Failed to get address of dirfd\n", stderr); abort(); }
     orig_glob = dlsym(RTLD_NEXT, "glob");
     if (orig_glob == NULL) { fputs("Failed to get address of glob\n", stderr); abort(); }
     orig_globfree = dlsym(RTLD_NEXT, "globfree");
@@ -1804,6 +2273,10 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_wait == NULL) { fputs("Failed to get address of wait\n", stderr); abort(); }
     orig_waitpid = dlsym(RTLD_NEXT, "waitpid");
     if (orig_waitpid == NULL) { fputs("Failed to get address of waitpid\n", stderr); abort(); }
+    orig_wait3 = dlsym(RTLD_NEXT, "wait3");
+    if (orig_wait3 == NULL) { fputs("Failed to get address of wait3\n", stderr); abort(); }
+    orig_wait4 = dlsym(RTLD_NEXT, "wait4");
+    if (orig_wait4 == NULL) { fputs("Failed to get address of wait4\n", stderr); abort(); }
     orig_dup = dlsym(RTLD_NEXT, "dup");
     if (orig_dup == NULL) { fputs("Failed to get address of dup\n", stderr); abort(); }
     orig_dup2 = dlsym(RTLD_NEXT, "dup2");
@@ -1865,6 +2338,22 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     orig_rmdir = dlsym(RTLD_NEXT, "rmdir");
     if (orig_rmdir == NULL) { fputs("Failed to get address of rmdir\n", stderr); abort(); }
 }
+int creat(const char* filename, mode_t mode)
+{
+    if (is_wire_thread) {
+        return wio_creat(filename, mode);
+    } else {
+        return orig_creat(filename, mode);
+    }
+}
+int creat64(const char* filename, mode_t mode)
+{
+    if (is_wire_thread) {
+        return wio_creat64(filename, mode);
+    } else {
+        return orig_creat64(filename, mode);
+    }
+}
 int close(int fd)
 {
     if (is_wire_thread) {
@@ -1903,6 +2392,54 @@ ssize_t write(int fd, const void *buf, size_t count)
         return wio_write(fd, buf, count);
     } else {
         return orig_write(fd, buf, count);
+    }
+}
+int lockf(int fd, int cmd, off_t len)
+{
+    if (is_wire_thread) {
+        return wio_lockf(fd, cmd, len);
+    } else {
+        return orig_lockf(fd, cmd, len);
+    }
+}
+int lockf64(int fd, int cmd, off64_t len)
+{
+    if (is_wire_thread) {
+        return wio_lockf64(fd, cmd, len);
+    } else {
+        return orig_lockf64(fd, cmd, len);
+    }
+}
+int posix_fadvise(int fd, off_t offset, off_t len, int advise)
+{
+    if (is_wire_thread) {
+        return wio_posix_fadvise(fd, offset, len, advise);
+    } else {
+        return orig_posix_fadvise(fd, offset, len, advise);
+    }
+}
+int posix_fadvise64(int fd, off64_t offset, off64_t len, int advise)
+{
+    if (is_wire_thread) {
+        return wio_posix_fadvise64(fd, offset, len, advise);
+    } else {
+        return orig_posix_fadvise64(fd, offset, len, advise);
+    }
+}
+int posix_fallocate(int fd, off_t offset, off_t len)
+{
+    if (is_wire_thread) {
+        return wio_posix_fallocate(fd, offset, len);
+    } else {
+        return orig_posix_fallocate(fd, offset, len);
+    }
+}
+int posix_fallocate64(int fd, off64_t offset, off64_t len)
+{
+    if (is_wire_thread) {
+        return wio_posix_fallocate64(fd, offset, len);
+    } else {
+        return orig_posix_fallocate64(fd, offset, len);
     }
 }
 off_t lseek(int fd, off_t offset, int whence)
@@ -2041,20 +2578,60 @@ ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
         return orig_pwritev(fd, iov, iovcnt, offset);
     }
 }
-void * mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+int msync(void* addr, size_t len, int flags)
 {
     if (is_wire_thread) {
-        return wio_mmap(addr, length, protc, flags, fd, offset);
+        return wio_msync(addr, len, flags);
     } else {
-        return orig_mmap(addr, length, protc, flags, fd, offset);
+        return orig_msync(addr, len, flags);
     }
 }
-int munmap(void *addr, size_t length)
+int madvise(void* addr, size_t len, int advice)
 {
     if (is_wire_thread) {
-        return wio_munmap(addr, length);
+        return wio_madvise(addr, len, advice);
     } else {
-        return orig_munmap(addr, length);
+        return orig_madvise(addr, len, advice);
+    }
+}
+int posix_madvise(void* addr, size_t len, int advice)
+{
+    if (is_wire_thread) {
+        return wio_posix_madvise(addr, len, advice);
+    } else {
+        return orig_posix_madvise(addr, len, advice);
+    }
+}
+int mlock(const void* addr, size_t len)
+{
+    if (is_wire_thread) {
+        return wio_mlock(addr, len);
+    } else {
+        return orig_mlock(addr, len);
+    }
+}
+int munlock(const void* addr, size_t len)
+{
+    if (is_wire_thread) {
+        return wio_munlock(addr, len);
+    } else {
+        return orig_munlock(addr, len);
+    }
+}
+int mlockall(int flags)
+{
+    if (is_wire_thread) {
+        return wio_mlockall(flags);
+    } else {
+        return orig_mlockall(flags);
+    }
+}
+int munlockall(void)
+{
+    if (is_wire_thread) {
+        return wio_munlockall();
+    } else {
+        return orig_munlockall();
     }
 }
 DIR * opendir(const char *name)
@@ -2095,6 +2672,38 @@ struct dirent * readdir(DIR *dirp)
         return wio_readdir(dirp);
     } else {
         return orig_readdir(dirp);
+    }
+}
+void rewinddir(DIR* dirp)
+{
+    if (is_wire_thread) {
+        return wio_rewinddir(dirp);
+    } else {
+        return orig_rewinddir(dirp);
+    }
+}
+void seekdir(DIR* dirp, long int pos)
+{
+    if (is_wire_thread) {
+        return wio_seekdir(dirp, pos);
+    } else {
+        return orig_seekdir(dirp, pos);
+    }
+}
+long int telldir(DIR* dirp)
+{
+    if (is_wire_thread) {
+        return wio_telldir(dirp);
+    } else {
+        return orig_telldir(dirp);
+    }
+}
+int dirfd(DIR* dirp)
+{
+    if (is_wire_thread) {
+        return wio_dirfd(dirp);
+    } else {
+        return orig_dirfd(dirp);
     }
 }
 int glob(const char *pattern, int flags, glob_errfunc_t errfunc, glob_t *pglob)
@@ -2183,6 +2792,22 @@ pid_t waitpid(pid_t pid, int *status, int options)
         return wio_waitpid(pid, status, options);
     } else {
         return orig_waitpid(pid, status, options);
+    }
+}
+pid_t wait3(int* stat_loc, int options, struct rusage* usage)
+{
+    if (is_wire_thread) {
+        return wio_wait3(stat_loc, options, usage);
+    } else {
+        return orig_wait3(stat_loc, options, usage);
+    }
+}
+pid_t wait4(pid_t pid, int* stat_loc, int options, struct rusage* usage)
+{
+    if (is_wire_thread) {
+        return wio_wait4(pid, stat_loc, options, usage);
+    } else {
+        return orig_wait4(pid, stat_loc, options, usage);
     }
 }
 int dup(int oldfd)
