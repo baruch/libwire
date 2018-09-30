@@ -139,6 +139,13 @@ the locks will be minimal.
     int wio_fallocate(int fd, int mode, off_t offset, off_t len);
     int wio_fsync(int fd);
 
+wire_io also implements many of the blocking library calls as overridden
+functions that will call the wio\_ function when in the wire and call the
+original libc function when in the thread so that libraries and external code
+does not need to be modified to work in the wire. That pertains to statically
+linked code to the executable, a shared library may need its own special
+handling and this use is still untested for external shared libraries.
+
 wire_lock
 ---------
 
