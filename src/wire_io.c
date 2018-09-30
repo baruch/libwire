@@ -229,6 +229,14 @@ static void wire_io_response(void *UNUSED(arg))
 	pthread_mutex_destroy(&wire_io.mutex);
 }
 
+static wire_t wire_io_first_run;
+static char wire_io_first_run_stack[32];
+static void wire_io_first_run_func(void* unused)
+{
+	// Upon initial run of this wire we will start using the wire_io for overridden io functions
+	is_wire_thread = true;
+}
+
 void wire_io_init(int num_threads)
 {
 	wire_io.num_active_ios = 0;
@@ -255,6 +263,6 @@ void wire_io_init(int num_threads)
 		pthread_create(&th, NULL, wire_io_thread, &wire_io);
 	}
 
-	is_wire_thread = true;
+	wire_init(&wire_io_first_run, "wire_io_first_run", wire_io_first_run_func, NULL, wire_io_first_run_stack, sizeof(wire_io_first_run_stack));
 }
 

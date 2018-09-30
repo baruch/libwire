@@ -35,6 +35,9 @@ enum wio_type {
 	IO_WRITEV,
 	IO_PREADV,
 	IO_PWRITEV,
+	IO_MMAP,
+	IO_MUNMAP,
+	IO_MPROTECT,
 	IO_MSYNC,
 	IO_MADVISE,
 	IO_POSIX_MADVISE,
@@ -329,6 +332,29 @@ struct wire_io_act {
             ssize_t ret;
             int verrno;
         } pwritev;
+        struct {
+            void * addr;
+            size_t length;
+            int protc;
+            int flags;
+            int fd;
+            off_t offset;
+            void * ret;
+            int verrno;
+        } mmap;
+        struct {
+            void * addr;
+            size_t length;
+            int ret;
+            int verrno;
+        } munmap;
+        struct {
+            void* addr;
+            size_t len;
+            int prot;
+            int ret;
+            int verrno;
+        } mprotect;
         struct {
             void* addr;
             size_t len;
@@ -801,6 +827,18 @@ static void perform_action(struct wire_io_act *act)
         case IO_PWRITEV:
             act->pwritev.ret = pwritev(act->pwritev.fd, act->pwritev.iov, act->pwritev.iovcnt, act->pwritev.offset);
             act->pwritev.verrno = errno;
+            break;
+        case IO_MMAP:
+            act->mmap.ret = mmap(act->mmap.addr, act->mmap.length, act->mmap.protc, act->mmap.flags, act->mmap.fd, act->mmap.offset);
+            act->mmap.verrno = errno;
+            break;
+        case IO_MUNMAP:
+            act->munmap.ret = munmap(act->munmap.addr, act->munmap.length);
+            act->munmap.verrno = errno;
+            break;
+        case IO_MPROTECT:
+            act->mprotect.ret = mprotect(act->mprotect.addr, act->mprotect.len, act->mprotect.prot);
+            act->mprotect.verrno = errno;
             break;
         case IO_MSYNC:
             act->msync.ret = msync(act->msync.addr, act->msync.len, act->msync.flags);
@@ -1435,6 +1473,44 @@ ssize_t wio_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
     submit_action(&act.common);
     errno = act.pwritev.verrno;
     return act.pwritev.ret;
+}
+
+void * wio_mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+{
+    struct wire_io_act act;
+    act.type = IO_MMAP;
+    act.mmap.addr = addr;
+    act.mmap.length = length;
+    act.mmap.protc = protc;
+    act.mmap.flags = flags;
+    act.mmap.fd = fd;
+    act.mmap.offset = offset;
+    submit_action(&act.common);
+    errno = act.mmap.verrno;
+    return act.mmap.ret;
+}
+
+int wio_munmap(void *addr, size_t length)
+{
+    struct wire_io_act act;
+    act.type = IO_MUNMAP;
+    act.munmap.addr = addr;
+    act.munmap.length = length;
+    submit_action(&act.common);
+    errno = act.munmap.verrno;
+    return act.munmap.ret;
+}
+
+int wio_mprotect(void* addr, size_t len, int prot)
+{
+    struct wire_io_act act;
+    act.type = IO_MPROTECT;
+    act.mprotect.addr = addr;
+    act.mprotect.len = len;
+    act.mprotect.prot = prot;
+    submit_action(&act.common);
+    errno = act.mprotect.verrno;
+    return act.mprotect.ret;
 }
 
 int wio_msync(void* addr, size_t len, int flags)
@@ -2094,6 +2170,9 @@ static ssize_t (*orig_readv)(int fd, const struct iovec *iov, int iovcnt);
 static ssize_t (*orig_writev)(int fd, const struct iovec *iov, int iovcnt);
 static ssize_t (*orig_preadv)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 static ssize_t (*orig_pwritev)(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+static void * (*orig_mmap)(void *addr, size_t length, int protc, int flags, int fd, off_t offset);
+static int (*orig_munmap)(void *addr, size_t length);
+static int (*orig_mprotect)(void* addr, size_t len, int prot);
 static int (*orig_msync)(void* addr, size_t len, int flags);
 static int (*orig_madvise)(void* addr, size_t len, int advice);
 static int (*orig_posix_madvise)(void* addr, size_t len, int advice);
@@ -2219,6 +2298,12 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_preadv == NULL) { fputs("Failed to get address of preadv\n", stderr); abort(); }
     orig_pwritev = dlsym(RTLD_NEXT, "pwritev");
     if (orig_pwritev == NULL) { fputs("Failed to get address of pwritev\n", stderr); abort(); }
+    orig_mmap = dlsym(RTLD_NEXT, "mmap");
+    if (orig_mmap == NULL) { fputs("Failed to get address of mmap\n", stderr); abort(); }
+    orig_munmap = dlsym(RTLD_NEXT, "munmap");
+    if (orig_munmap == NULL) { fputs("Failed to get address of munmap\n", stderr); abort(); }
+    orig_mprotect = dlsym(RTLD_NEXT, "mprotect");
+    if (orig_mprotect == NULL) { fputs("Failed to get address of mprotect\n", stderr); abort(); }
     orig_msync = dlsym(RTLD_NEXT, "msync");
     if (orig_msync == NULL) { fputs("Failed to get address of msync\n", stderr); abort(); }
     orig_madvise = dlsym(RTLD_NEXT, "madvise");
@@ -2592,6 +2677,30 @@ ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
         return wio_pwritev(fd, iov, iovcnt, offset);
     } else {
         return orig_pwritev(fd, iov, iovcnt, offset);
+    }
+}
+void * mmap(void *addr, size_t length, int protc, int flags, int fd, off_t offset)
+{
+    if (is_wire_thread) {
+        return wio_mmap(addr, length, protc, flags, fd, offset);
+    } else {
+        return orig_mmap(addr, length, protc, flags, fd, offset);
+    }
+}
+int munmap(void *addr, size_t length)
+{
+    if (is_wire_thread) {
+        return wio_munmap(addr, length);
+    } else {
+        return orig_munmap(addr, length);
+    }
+}
+int mprotect(void* addr, size_t len, int prot)
+{
+    if (is_wire_thread) {
+        return wio_mprotect(addr, len, prot);
+    } else {
+        return orig_mprotect(addr, len, prot);
     }
 }
 int msync(void* addr, size_t len, int flags)
