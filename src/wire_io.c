@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <dlfcn.h>
 #include <assert.h>
+#include <stdarg.h>
 
 struct wire_io {
 	pthread_mutex_t mutex;
@@ -64,6 +65,23 @@ static void submit_action(struct wire_io_act_common *act)
 	wire_io.num_active_ios++;
 	wire_fd_mode_read(&wire_io.fd_state);
 	wire_list_wait(&wait_list);
+}
+
+static int (*orig_open)(const char* filename, int flags, ...);
+static int gen_open(const char* filename, int flags, mode_t mode);
+
+int open(const char* filename, int flags, ...)
+{
+	mode_t mode;
+
+	if (__OPEN_NEEDS_MODE(mode)) {
+		va_list arg;
+		va_start(arg, flags);
+		mode = va_arg(arg, int);
+		va_end(arg);
+	}
+
+	return gen_open(filename, flags, mode);
 }
 
 #include "wire_io_gen.c.inc"
@@ -225,3 +243,4 @@ void wire_io_init(int num_threads)
 
 	is_wire_thread = true;
 }
+

@@ -29,7 +29,7 @@ typedefs = [
 syscalls = [
         "int creat(const char* filename, mode_t mode)",
         "int creat64(const char* filename, mode_t mode)",
-        ("int open(const char *pathname, int flags, mode_t mode)", ),
+        ("int open(const char *pathname, int flags, mode_t mode)", 1),
         "int close(int fd)",
         "ssize_t pread(int fd, void *buf, size_t count, off_t offset)",
         "ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)",
@@ -160,9 +160,16 @@ def strip_list(l):
 
 class FuncDecl(object):
     def __init__(self, decl):
+        self.special_dlsym = False
+        self.special_gen = False
         if type(decl) == list or type(decl) == tuple:
-            decl = decl[0]
             self.is_special = True
+            if len(decl) > 1:
+                print >>sys.stderr, 'decl', len(decl), decl
+                self.special_dlsym = True
+                if decl[1] == 1:
+                    self.special_gen = True
+            decl = decl[0]
         else:
             self.is_special = False
 
@@ -190,6 +197,8 @@ class FuncDecl(object):
         self.args_full = strip_list(self.args_full)
         self.argd = strip_list(self.argd)
 
+        if self.is_special:
+            print >>sys.stderr, 'special', self.func_name, self.is_special, self.special_dlsym, self.special_gen
 parsed_decl = map(lambda x: FuncDecl(x), syscalls)
 
 def enum_name(decl):
@@ -268,20 +277,24 @@ else:
         print
 
     for decl in parsed_decl:
+        if decl.is_special: continue
         print 'static %s (*orig_%s)(%s);' % (decl.ret_type, decl.func_name, decl.args_full)
 
     print '__attribute__((constructor)) static void wire_dlsym_init(void)'
     print '{'
     for decl in parsed_decl:
-        if decl.is_special: continue
+        if decl.is_special and not decl.special_dlsym: continue
         print '    orig_%s = dlsym(RTLD_NEXT, "%s");' % (decl.func_name, decl.func_name)
         print '    if (orig_%s == NULL) { fputs("Failed to get address of %s\\n", stderr); abort(); }' % (decl.func_name, decl.func_name)
     print '}'
 
     for decl in parsed_decl:
-        if decl.is_special: continue
+        if decl.is_special and not decl.special_gen: continue
 
-        print '%s %s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
+        if not decl.special_gen:
+            print '%s %s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
+        else:
+            print 'static %s gen_%s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
         print '{'
         print '    if (is_wire_thread) {'
         print '        return wio_%s(%s);' % (decl.func_name, args_call_2(decl.argd))

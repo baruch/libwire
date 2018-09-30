@@ -20,7 +20,7 @@ static void io(void *arg)
 	const char *filename = arg;
 
 	LOG("wio_open");
-	int fd = wio_open(filename, O_CREAT|O_RDWR, 0666);
+	int fd = open(filename, O_CREAT|O_RDWR, 0666);
 	int ret;
 	(void)ret;
 

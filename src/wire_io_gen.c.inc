@@ -2066,7 +2066,6 @@ int wio_rmdir(const char* path)
 
 static int (*orig_creat)(const char* filename, mode_t mode);
 static int (*orig_creat64)(const char* filename, mode_t mode);
-static int (*orig_open)(const char *pathname, int flags, mode_t mode);
 static int (*orig_close)(int fd);
 static ssize_t (*orig_pread)(int fd, void *buf, size_t count, off_t offset);
 static ssize_t (*orig_pwrite)(int fd, const void *buf, size_t count, off_t offset);
@@ -2078,8 +2077,6 @@ static int (*orig_posix_fadvise)(int fd, off_t offset, off_t len, int advise);
 static int (*orig_posix_fadvise64)(int fd, off64_t offset, off64_t len, int advise);
 static int (*orig_posix_fallocate)(int fd, off_t offset, off_t len);
 static int (*orig_posix_fallocate64)(int fd, off64_t offset, off64_t len);
-static int (*orig_fstat)(int fd, struct stat *buf);
-static int (*orig_stat)(const char *path, struct stat *buf);
 static off_t (*orig_lseek)(int fd, off_t offset, int whence);
 static off64_t (*orig_lseek64)(int fd, off64_t offset, int whence);
 static int (*orig_ftruncate)(int fd, off_t length);
@@ -2092,7 +2089,6 @@ static int (*orig_statfs)(const char *path, struct statfs *buf);
 static int (*orig_fstatfs)(int fd, struct statfs *buf);
 static int (*orig_getaddrinfo)(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 static int (*orig_getnameinfo)(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags);
-static int (*orig_ioctl)(int d, unsigned long request, void *argp);
 static int (*orig_getifaddrs)(struct ifaddrs **ifap);
 static ssize_t (*orig_readv)(int fd, const struct iovec *iov, int iovcnt);
 static ssize_t (*orig_writev)(int fd, const struct iovec *iov, int iovcnt);
@@ -2163,6 +2159,8 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_creat == NULL) { fputs("Failed to get address of creat\n", stderr); abort(); }
     orig_creat64 = dlsym(RTLD_NEXT, "creat64");
     if (orig_creat64 == NULL) { fputs("Failed to get address of creat64\n", stderr); abort(); }
+    orig_open = dlsym(RTLD_NEXT, "open");
+    if (orig_open == NULL) { fputs("Failed to get address of open\n", stderr); abort(); }
     orig_close = dlsym(RTLD_NEXT, "close");
     if (orig_close == NULL) { fputs("Failed to get address of close\n", stderr); abort(); }
     orig_pread = dlsym(RTLD_NEXT, "pread");
@@ -2352,6 +2350,14 @@ int creat64(const char* filename, mode_t mode)
         return wio_creat64(filename, mode);
     } else {
         return orig_creat64(filename, mode);
+    }
+}
+static int gen_open(const char *pathname, int flags, mode_t mode)
+{
+    if (is_wire_thread) {
+        return wio_open(pathname, flags, mode);
+    } else {
+        return orig_open(pathname, flags, mode);
     }
 }
 int close(int fd)
