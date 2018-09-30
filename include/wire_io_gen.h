@@ -17,6 +17,7 @@
 #include <glob.h>
 #include <stdio.h>
 #include <ftw.h>
+#include <syslog.h>
 typedef int (*glob_errfunc_t)(const char *epath, int eerrno) ;
 typedef int (*ftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag) ;
 typedef int (*nftw_cb_t)(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) ;
@@ -116,5 +117,9 @@ int wio_symlink(const char* from, const char* to);
 ssize_t wio_readlink(const char* path, char* buf, size_t len);
 int wio_unlink(const char *name);
 int wio_rmdir(const char* path);
+void wio_openlog(const char* ident, int option, int facility);
+void wio_closelog(void);
+int wio_setlogmask(int mask);
+void wio_vsyslog(int pri, const char* fmt, va_list ap);
 
 #endif

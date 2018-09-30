@@ -97,6 +97,10 @@ enum wio_type {
 	IO_READLINK,
 	IO_UNLINK,
 	IO_RMDIR,
+	IO_OPENLOG,
+	IO_CLOSELOG,
+	IO_SETLOGMASK,
+	IO_VSYSLOG,
 };
 
 struct wire_io_act {
@@ -687,6 +691,23 @@ struct wire_io_act {
             int ret;
             int verrno;
         } rmdir;
+        struct {
+            const char* ident;
+            int option;
+            int facility;
+        } openlog;
+        struct {
+        } closelog;
+        struct {
+            int mask;
+            int ret;
+            int verrno;
+        } setlogmask;
+        struct {
+            int pri;
+            const char* fmt;
+            va_list ap;
+        } vsyslog;
     };
 };
 
@@ -1072,6 +1093,19 @@ static void perform_action(struct wire_io_act *act)
         case IO_RMDIR:
             act->rmdir.ret = rmdir(act->rmdir.path);
             act->rmdir.verrno = errno;
+            break;
+        case IO_OPENLOG:
+            openlog(act->openlog.ident, act->openlog.option, act->openlog.facility);
+            break;
+        case IO_CLOSELOG:
+            closelog();
+            break;
+        case IO_SETLOGMASK:
+            act->setlogmask.ret = setlogmask(act->setlogmask.mask);
+            act->setlogmask.verrno = errno;
+            break;
+        case IO_VSYSLOG:
+            vsyslog(act->vsyslog.pri, act->vsyslog.fmt, act->vsyslog.ap);
             break;
     }
 }
@@ -2140,6 +2174,44 @@ int wio_rmdir(const char* path)
     return act.rmdir.ret;
 }
 
+void wio_openlog(const char* ident, int option, int facility)
+{
+    struct wire_io_act act;
+    act.type = IO_OPENLOG;
+    act.openlog.ident = ident;
+    act.openlog.option = option;
+    act.openlog.facility = facility;
+    submit_action(&act.common);
+}
+
+void wio_closelog(void)
+{
+    struct wire_io_act act;
+    act.type = IO_CLOSELOG;
+    submit_action(&act.common);
+}
+
+int wio_setlogmask(int mask)
+{
+    struct wire_io_act act;
+    act.type = IO_SETLOGMASK;
+    act.setlogmask.mask = mask;
+    submit_action(&act.common);
+    errno = act.setlogmask.verrno;
+    return act.setlogmask.ret;
+}
+
+void wio_vsyslog(int pri, const char* fmt, va_list ap)
+{
+    struct wire_io_act act;
+    act.type = IO_VSYSLOG;
+    act.vsyslog.pri = pri;
+    act.vsyslog.fmt = fmt;
+    va_copy(act.vsyslog.ap, ap);
+    submit_action(&act.common);
+    va_end(act.vsyslog.ap);
+}
+
 static int (*orig_creat)(const char* filename, mode_t mode);
 static int (*orig_creat64)(const char* filename, mode_t mode);
 static int (*orig_close)(int fd);
@@ -2232,6 +2304,10 @@ static int (*orig_symlink)(const char* from, const char* to);
 static ssize_t (*orig_readlink)(const char* path, char* buf, size_t len);
 static int (*orig_unlink)(const char *name);
 static int (*orig_rmdir)(const char* path);
+static void (*orig_openlog)(const char* ident, int option, int facility);
+static void (*orig_closelog)(void);
+static int (*orig_setlogmask)(int mask);
+static void (*orig_vsyslog)(int pri, const char* fmt, va_list ap);
 __attribute__((constructor)) static void wire_dlsym_init(void)
 {
     orig_creat = dlsym(RTLD_NEXT, "creat");
@@ -2422,6 +2498,14 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_unlink == NULL) { fputs("Failed to get address of unlink\n", stderr); abort(); }
     orig_rmdir = dlsym(RTLD_NEXT, "rmdir");
     if (orig_rmdir == NULL) { fputs("Failed to get address of rmdir\n", stderr); abort(); }
+    orig_openlog = dlsym(RTLD_NEXT, "openlog");
+    if (orig_openlog == NULL) { fputs("Failed to get address of openlog\n", stderr); abort(); }
+    orig_closelog = dlsym(RTLD_NEXT, "closelog");
+    if (orig_closelog == NULL) { fputs("Failed to get address of closelog\n", stderr); abort(); }
+    orig_setlogmask = dlsym(RTLD_NEXT, "setlogmask");
+    if (orig_setlogmask == NULL) { fputs("Failed to get address of setlogmask\n", stderr); abort(); }
+    orig_vsyslog = dlsym(RTLD_NEXT, "vsyslog");
+    if (orig_vsyslog == NULL) { fputs("Failed to get address of vsyslog\n", stderr); abort(); }
 }
 int creat(const char* filename, mode_t mode)
 {
@@ -3173,5 +3257,37 @@ int rmdir(const char* path)
         return wio_rmdir(path);
     } else {
         return orig_rmdir(path);
+    }
+}
+void openlog(const char* ident, int option, int facility)
+{
+    if (is_wire_thread) {
+        return wio_openlog(ident, option, facility);
+    } else {
+        return orig_openlog(ident, option, facility);
+    }
+}
+void closelog(void)
+{
+    if (is_wire_thread) {
+        return wio_closelog();
+    } else {
+        return orig_closelog();
+    }
+}
+int setlogmask(int mask)
+{
+    if (is_wire_thread) {
+        return wio_setlogmask(mask);
+    } else {
+        return orig_setlogmask(mask);
+    }
+}
+void vsyslog(int pri, const char* fmt, va_list ap)
+{
+    if (is_wire_thread) {
+        return wio_vsyslog(pri, fmt, ap);
+    } else {
+        return orig_vsyslog(pri, fmt, ap);
     }
 }

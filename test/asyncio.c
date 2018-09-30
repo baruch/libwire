@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 
 static wire_t task_io1;
 static wire_t task_io2;
@@ -14,6 +15,15 @@ static wire_t task_io4;
 static wire_t task_io5;
 
 #define LOG(msg) printf("%s:" msg "\n", filename)
+
+static void test_vsyslog(const char* fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsyslog(LOG_INFO, fmt, ap);
+	va_end(ap);
+}
 
 static void io(void *arg)
 {
@@ -64,6 +74,12 @@ static void io(void *arg)
 	LOG("wio_close");
 	wio_close(fd);
 
+	LOG("test syslog");
+	openlog("asyncio-test", LOG_PERROR, LOG_USER);
+	test_vsyslog("message %s %s", "hello", "world!");
+	syslog(LOG_DEBUG, "just a message %p %s", arg, filename);
+	closelog();
+
 	LOG("Done");
 }
 
@@ -72,7 +88,7 @@ int main()
 	wire_thread_init();
 	wire_stack_fault_detector_install();
 	wire_fd_init();
-	wire_io_init(1);
+	wire_io_init(16);
 	wire_init(&task_io1, "io 1", io, "/tmp/a.1", WIRE_STACK_ALLOC(64*1024));
 	wire_init(&task_io2, "io 2", io, "/tmp/a.2", WIRE_STACK_ALLOC(64*1024));
 	wire_init(&task_io3, "io 3", io, "/tmp/a.3", WIRE_STACK_ALLOC(64*1024));

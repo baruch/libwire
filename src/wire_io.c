@@ -100,6 +100,15 @@ int open(const char* filename, int flags, ...)
 
 #include "wire_io_gen.c.inc"
 
+// Forward the syslog function to the vsyslog we auto-implemented for wire_io
+void syslog(int priority, const char* format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	vsyslog(priority, format, ap);
+	va_end(ap);
+}
+
 static inline void set_nonblock(int fd)
 {
         int ret = fcntl(fd, F_GETFL);

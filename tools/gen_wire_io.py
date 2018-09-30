@@ -17,7 +17,7 @@ includes = [
         "glob.h",
         "stdio.h",
         "ftw.h",
-#        "syslog.h",
+        "syslog.h",
         ]
 
 typedefs = [
@@ -128,11 +128,11 @@ syscalls = [
         "ssize_t readlink(const char* path, char* buf, size_t len)",
         "int unlink(const char *name)",
         "int rmdir(const char* path)",
-#        "void openlog(const char* ident, int option, int facility)",
-#        "void closelog(void)",
-#        "int setlogmask(int mask)",
+        "void openlog(const char* ident, int option, int facility)",
+        "void closelog(void)",
+        "int setlogmask(int mask)",
 #        "void syslog(int pri, const char* fmt, ...)",
-#        "void vsyslog(int pri, const char* fmt, va_list ap)",
+        "void vsyslog(int pri, const char* fmt, va_list ap)",
         ]
 
 import re
@@ -267,9 +267,16 @@ else:
         print '{'
         print '    struct wire_io_act act;'
         print '    act.type = %s;' % enum_name(decl)
+        was_va_list = None
         for arg in decl.argd:
-            print '    act.%s.%s = %s;' % (decl.func_name, arg[1], arg[1])
+            if arg[0] == 'va_list':
+                was_va_list = 'act.%s.%s' % (decl.func_name, arg[1])
+                print '    va_copy(%s, %s);' % (was_va_list, arg[1])
+            else:
+                print '    act.%s.%s = %s;' % (decl.func_name, arg[1], arg[1])
         print '    submit_action(&act.common);'
+        if was_va_list:
+            print '    va_end(%s);' % was_va_list
         if decl.ret_type != 'void':
             print '    errno = act.%s.verrno;' % decl.func_name
             print '    return act.%s.ret;' % decl.func_name
