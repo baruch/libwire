@@ -67,6 +67,20 @@ static void submit_action(struct wire_io_act_common *act)
 	wire_list_wait(&wait_list);
 }
 
+static int (*orig_ioctl)(int fd, unsigned long request, ...);
+static int gen_ioctl(int fd, unsigned long request, void* argp);
+int ioctl(int fd, unsigned long request, ...)
+{
+	void* argp;
+
+	va_list arg;
+	va_start(arg, request);
+	argp = va_arg(arg, void*);
+	va_end(arg);
+
+	gen_ioctl(fd, request, argp);
+}
+
 static int (*orig_open)(const char* filename, int flags, ...);
 static int gen_open(const char* filename, int flags, mode_t mode);
 

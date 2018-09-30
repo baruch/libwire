@@ -2207,6 +2207,8 @@ __attribute__((constructor)) static void wire_dlsym_init(void)
     if (orig_getaddrinfo == NULL) { fputs("Failed to get address of getaddrinfo\n", stderr); abort(); }
     orig_getnameinfo = dlsym(RTLD_NEXT, "getnameinfo");
     if (orig_getnameinfo == NULL) { fputs("Failed to get address of getnameinfo\n", stderr); abort(); }
+    orig_ioctl = dlsym(RTLD_NEXT, "ioctl");
+    if (orig_ioctl == NULL) { fputs("Failed to get address of ioctl\n", stderr); abort(); }
     orig_getifaddrs = dlsym(RTLD_NEXT, "getifaddrs");
     if (orig_getifaddrs == NULL) { fputs("Failed to get address of getifaddrs\n", stderr); abort(); }
     orig_readv = dlsym(RTLD_NEXT, "readv");
@@ -2542,6 +2544,14 @@ int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_
         return wio_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
     } else {
         return orig_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
+    }
+}
+static int gen_ioctl(int d, unsigned long request, void *argp)
+{
+    if (is_wire_thread) {
+        return wio_ioctl(d, request, argp);
+    } else {
+        return orig_ioctl(d, request, argp);
     }
 }
 int getifaddrs(struct ifaddrs **ifap)
