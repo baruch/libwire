@@ -84,6 +84,10 @@ int ioctl(int fd, unsigned long request, ...)
 static int (*orig_open)(const char* filename, int flags, ...);
 static int gen_open(const char* filename, int flags, mode_t mode);
 
+#ifndef __OPEN_NEEDS_MODE
+#define __OPEN_NEEDS_MODE(mode) (mode & O_CREAT != 0)
+#endif
+
 int open(const char* filename, int flags, ...)
 {
 	mode_t mode;
