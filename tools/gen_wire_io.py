@@ -29,7 +29,7 @@ typedefs = [
 syscalls = [
         "int creat(const char* filename, mode_t mode)",
         "int creat64(const char* filename, mode_t mode)",
-        ("int open(const char *pathname, int flags, mode_t mode)", 1),
+        {"call": "int open(const char *pathname, int flags, mode_t mode)", "special": 1},
         "int close(int fd)",
         "ssize_t pread(int fd, void *buf, size_t count, off_t offset)",
         "ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)",
@@ -41,8 +41,8 @@ syscalls = [
         "int posix_fadvise64(int fd, off64_t offset, off64_t len, int advise)",
         "int posix_fallocate(int fd, off_t offset, off_t len)",
         "int posix_fallocate64(int fd, off64_t offset, off64_t len)",
-        ("int fstat(int fd, struct stat *buf)",),
-        ("int stat(const char *path, struct stat *buf)",),
+        {"call": "int fstat(int fd, struct stat *buf)",},
+        {"call": "int stat(const char *path, struct stat *buf)",},
         "off_t lseek(int fd, off_t offset, int whence)",
         "off64_t lseek64(int fd, off64_t offset, int whence)",
         "int ftruncate(int fd, off_t length)",
@@ -55,7 +55,7 @@ syscalls = [
         "int fstatfs(int fd, struct statfs *buf)",
         "int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)",
         "int getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags)",
-        ("int ioctl(int d, unsigned long request, void *argp)", 1),
+        {"call": "int ioctl(int d, unsigned long request, void *argp)", "special": 1},
         "int getifaddrs(struct ifaddrs **ifap)",
         "ssize_t readv(int fd, const struct iovec *iov, int iovcnt)",
         "ssize_t writev(int fd, const struct iovec *iov, int iovcnt)",
@@ -160,16 +160,15 @@ def strip_list(l):
 
 class FuncDecl(object):
     def __init__(self, decl):
-        self.special_dlsym = False
         self.special_gen = False
-        if type(decl) == list or type(decl) == tuple:
+        if type(decl) == dict:
             self.is_special = True
-            if len(decl) > 1:
-                print >>sys.stderr, 'decl', len(decl), decl
-                self.special_dlsym = True
-                if decl[1] == 1:
+            special_code = decl.get('special', None)
+            if special_code:
+                if special_code == 1:
+                    print >>sys.stderr, 'decl', len(decl), decl
                     self.special_gen = True
-            decl = decl[0]
+            decl = decl['call']
         else:
             self.is_special = False
 
@@ -198,7 +197,7 @@ class FuncDecl(object):
         self.argd = strip_list(self.argd)
 
         if self.is_special:
-            print >>sys.stderr, 'special', self.func_name, self.is_special, self.special_dlsym, self.special_gen
+            print >>sys.stderr, 'special', self.func_name, self.is_special, self.special_gen
 parsed_decl = map(lambda x: FuncDecl(x), syscalls)
 
 def enum_name(decl):
@@ -290,7 +289,7 @@ else:
     print '__attribute__((constructor)) static void wire_dlsym_init(void)'
     print '{'
     for decl in parsed_decl:
-        if decl.is_special and not decl.special_dlsym: continue
+        if decl.is_special and not decl.special_gen: continue
         print '    orig_%s = dlsym(RTLD_NEXT, "%s");' % (decl.func_name, decl.func_name)
         print '    if (orig_%s == NULL) { fputs("Failed to get address of %s\\n", stderr); abort(); }' % (decl.func_name, decl.func_name)
     print '}'
