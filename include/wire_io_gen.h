@@ -37,6 +37,7 @@ int wio_posix_fallocate(int fd, off_t offset, off_t len);
 int wio_posix_fallocate64(int fd, off64_t offset, off64_t len);
 int wio_fstat(int fd, struct stat *buf);
 int wio_stat(const char *path, struct stat *buf);
+int wio_lstat(const char* path, struct stat *statbuf);
 off_t wio_lseek(int fd, off_t offset, int whence);
 off64_t wio_lseek64(int fd, off64_t offset, int whence);
 int wio_ftruncate(int fd, off_t length);

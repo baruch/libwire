@@ -41,8 +41,9 @@ syscalls = [
         "int posix_fadvise64(int fd, off64_t offset, off64_t len, int advise)",
         "int posix_fallocate(int fd, off_t offset, off_t len)",
         "int posix_fallocate64(int fd, off64_t offset, off64_t len)",
-        {"call": "int fstat(int fd, struct stat *buf)",},
-        {"call": "int stat(const char *path, struct stat *buf)",},
+        {"call": "int fstat(int fd, struct stat *buf)", "libname": "__xfstat"},
+        {"call": "int stat(const char *path, struct stat *buf)", "libname": "__xstat"},
+        {"call": "int lstat(const char* path, struct stat *statbuf)", "libname": "__xlstat"},
         "off_t lseek(int fd, off_t offset, int whence)",
         "off64_t lseek64(int fd, off64_t offset, int whence)",
         "int ftruncate(int fd, off_t length)",
@@ -161,8 +162,10 @@ def strip_list(l):
 class FuncDecl(object):
     def __init__(self, decl):
         self.special_gen = False
+        self.libname = None
         if type(decl) == dict:
             self.is_special = True
+            self.libname = decl.get('libname', None)
             special_code = decl.get('special', None)
             if special_code:
                 if special_code == 1:
@@ -195,6 +198,8 @@ class FuncDecl(object):
         self.func_name = strip_list(self.func_name);
         self.args_full = strip_list(self.args_full)
         self.argd = strip_list(self.argd)
+        if self.libname is None:
+            self.libname = self.func_name
 
         if self.is_special:
             print >>sys.stderr, 'special', self.func_name, self.is_special, self.special_gen
@@ -290,7 +295,7 @@ else:
     print '{'
     for decl in parsed_decl:
         if decl.is_special and not decl.special_gen: continue
-        print '    orig_%s = dlsym(RTLD_NEXT, "%s");' % (decl.func_name, decl.func_name)
+        print '    orig_%s = dlsym(RTLD_NEXT, "%s");' % (decl.func_name, decl.libname)
         print '    if (orig_%s == NULL) { fputs("Failed to get address of %s\\n", stderr); abort(); }' % (decl.func_name, decl.func_name)
     print '}'
 
@@ -298,7 +303,7 @@ else:
         if decl.is_special and not decl.special_gen: continue
 
         if not decl.special_gen:
-            print '%s %s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
+            print '%s %s(%s)' % (decl.ret_type, decl.libname, decl.args_full)
         else:
             print 'static %s gen_%s(%s)' % (decl.ret_type, decl.func_name, decl.args_full)
         print '{'

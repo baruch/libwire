@@ -17,6 +17,7 @@ enum wio_type {
 	IO_POSIX_FALLOCATE64,
 	IO_FSTAT,
 	IO_STAT,
+	IO_LSTAT,
 	IO_LSEEK,
 	IO_LSEEK64,
 	IO_FTRUNCATE,
@@ -217,6 +218,12 @@ struct wire_io_act {
             int ret;
             int verrno;
         } stat;
+        struct {
+            const char* path;
+            struct stat * statbuf;
+            int ret;
+            int verrno;
+        } lstat;
         struct {
             int fd;
             off_t offset;
@@ -778,6 +785,10 @@ static void perform_action(struct wire_io_act *act)
             act->stat.ret = stat(act->stat.path, act->stat.buf);
             act->stat.verrno = errno;
             break;
+        case IO_LSTAT:
+            act->lstat.ret = lstat(act->lstat.path, act->lstat.statbuf);
+            act->lstat.verrno = errno;
+            break;
         case IO_LSEEK:
             act->lseek.ret = lseek(act->lseek.fd, act->lseek.offset, act->lseek.whence);
             act->lseek.verrno = errno;
@@ -1298,6 +1309,17 @@ int wio_stat(const char *path, struct stat *buf)
     submit_action(&act.common);
     errno = act.stat.verrno;
     return act.stat.ret;
+}
+
+int wio_lstat(const char* path, struct stat *statbuf)
+{
+    struct wire_io_act act;
+    act.type = IO_LSTAT;
+    act.lstat.path = path;
+    act.lstat.statbuf = statbuf;
+    submit_action(&act.common);
+    errno = act.lstat.verrno;
+    return act.lstat.ret;
 }
 
 off_t wio_lseek(int fd, off_t offset, int whence)
